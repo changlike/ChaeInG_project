@@ -27,26 +27,19 @@ dist/
 # Logs
 *.log
 
-# Dataset files downloaded during execution
-spam.csv
-*.csv
-
 # Model checkpoint / trained model files
 *.pt
 *.pth
 *.ckpt
 *.h5
-models/
 
 # Torchtext vector cache and dataset cache
 .vector_cache/
 .data/
 .cache/
 
-# Matplotlib or generated image outputs
-*.png
-*.jpg
-*.jpeg
-
 # Environment variable files
 .env
+
+# Node.js (frontend)
+node_modules/
