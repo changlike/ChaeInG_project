@@ -13,3 +13,13 @@ class SignupResponse(BaseModel):
     email: str
     nickname: str
     # 주의: password는 절대 응답에 포함 안 시킴 (보안관리 차원)
+
+# 로그인할 때 유저가 보내야 하는 데이터 형식
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+# 로그인 성공했을 때 서버가 돌려줄 응답 형식
+class LoginResponse(BaseModel):
+    access_token: str   # 발급된 JWT 토큰
+    token_type: str     # 토큰 종류 표시, 보통 'bearer'라고 고정해서 씀
