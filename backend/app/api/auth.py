@@ -25,6 +25,9 @@ from app.models.user import User
 # 회원가입/로그인 요청·응답 형식 가져오기
 from app.schemas.user import SignupRequest, SignupResponse, LoginRequest, LoginResponse
 
+# get_current_user 함수 가져오기
+from app.core.auth import get_current_user
+
 # 비밀번호 암호화 방식 설정 (bycrypt 방식 사용)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -88,3 +91,15 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
 
     # 4단계: 만들어진 토큰을 응답으로 돌려줌
     return {"access_token": access_token, "token_type": "bearer"}
+
+# 로그인한 내 정보 확인용 테스트 API
+# Depends(get_current_user): 여기서 토큰 검증이 자동으로 실행됨
+# 검증 실패 시 이 함수 본문은 아예 실행되지 않고 바로 401 에러 응답이 나감
+@router.get("/me")
+def get_me(current_user: User = Depends(get_current_user)):
+    # 여기까지 왔다면 이미 인증된 진짜 유저라는 의미
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "nickname": current_user.nickname
+    }
