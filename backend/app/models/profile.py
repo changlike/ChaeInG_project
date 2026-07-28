@@ -8,13 +8,13 @@ from app.core.database import Base
 
 # skin_profiles 테이블을 파이썬 클래스로 표현한 것
 class SkinProfile(Base):
-    __tablename__ = "skin_profile"   # 실제 MySQL에 있는 테이블 이름과 정확히 일치해야 함
+    __tablename__ = "skin_profiles"   # 실제 MySQL에 있는 테이블 이름과 정확히 일치해야 함
 
     # 컬럼 하나하나를 클래스 변수로 표현
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     # 이 프로필이 "누구의" 프로필인지 users 테이블의 id를 참조 (외래키)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     skin_type = Column(String(20), nullable=False)
     is_sensitive = Column(Boolean, default=False)
