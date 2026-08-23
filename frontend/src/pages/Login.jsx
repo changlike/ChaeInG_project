@@ -3,6 +3,7 @@
 import {Link} from 'react-router-dom';
 import {useState} from "react";
 import {loginUser} from '../api/auth';
+import Input from '../components/Input';
 
 function Login() {
     // 메모장과, 그 메모장을 갱신하는 함수를 만듦
@@ -28,6 +29,12 @@ function Login() {
                 placeholder="이메일 입력"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+            />
+            <Input
+                type="password"
+                placeholder="비밀번호 입력"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
             />
             <button onClick={handleLogin}>로그인</button>
             <p>
