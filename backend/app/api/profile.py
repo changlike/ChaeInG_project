@@ -21,6 +21,20 @@ from app.schemas.profile import ProfileRequest, ProfileResponse
 router = APIRouter()
 
 
+# DB에 콤마 문자열로 저장된 concerns를, 응답용 배열 형태로 바꿔주는 함수
+# (요청은 배열로 받고 DB는 문자열로 저장하므로, 응답 나갈 때 다시 배열로 맞춰줌)
+def _to_response(profile: SkinProfile) -> ProfileResponse:
+    return ProfileResponse(
+        id=profile.id,
+        user_id=profile.user_id,
+        skin_type=profile.skin_type,
+        is_sensitive=profile.is_sensitive,
+        concerns=profile.concerns.split(",") if profile.concerns else None,
+        preferred_ingredients=profile.preferred_ingredients,
+        avoided_ingredients=profile.avoided_ingredients,
+    )
+
+
 # 프로필 등록/수정 API
 # current_user: 토큰 검증을 통과한 '로그인한 유저' 객체 (자동으로 주입됨)
 @router.post("", response_model=ProfileResponse)
@@ -29,6 +43,9 @@ def create_or_update_profile(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db),
 ):
+    # 배열로 받은 concerns를 DB에 저장할 콤마 문자열로 변환
+    concerns_str = ",".join(request.concerns) if request.concerns else None
+
     # 1단계: 이 유저의 프로필이 이미 있는지 확인
     existing_profile = db.query(SkinProfile).filter(
         SkinProfile.user_id == current_user.id
@@ -38,13 +55,13 @@ def create_or_update_profile(
         # 2-1단계: 이미 있으면 기존 값들을 새 값으로 덮어쓰기
         existing_profile.skin_type = request.skin_type
         existing_profile.is_sensitive = request.is_sensitive
-        existing_profile.concerns = request.concerns
+        existing_profile.concerns = concerns_str
         existing_profile.preferred_ingredients = request.preferred_ingredients
         existing_profile.avoided_ingredients = request.avoided_ingredients
 
         db.commit()
         db.refresh(existing_profile)
-        return existing_profile
+        return _to_response(existing_profile)
 
     else:
         # 2-2단계: 없으면 새로 생성
@@ -52,7 +69,7 @@ def create_or_update_profile(
             user_id=current_user.id,        # 토큰에서 뽑은 유저 id를 그대로 사용
             skin_type = request.skin_type,
             is_sensitive = request.is_sensitive,
-            concerns = request.concerns,
+            concerns = concerns_str,
             preferred_ingredients = request.preferred_ingredients,
             avoided_ingredients = request.avoided_ingredients,
         )
@@ -60,7 +77,7 @@ def create_or_update_profile(
         db.add(new_profile)
         db.commit()
         db.refresh(new_profile)
-        return new_profile
+        return _to_response(new_profile)
 
 # 프로필 조회 API
 @router.get("", response_model=ProfileResponse)
@@ -77,4 +94,22 @@ def get_profile(
     if profile is None:
         raise HTTPException(status_code=404, detail="등록된 프로필이 없습니다")
 
-    return profile
+    return _to_response(profile)
+
+# 프로필 삭제 API
+@router.delete("", status_code=204)
+def delete_profile(
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+):
+    # 로그인한 유저의 프로필을 DB에서 조회
+    profile = db.query(SkinProfile).filter(
+        SkinProfile.user_id == current_user.id
+    ).first()
+
+    # 삭제할 프로필이 없다면 404 에러
+    if profile is None:
+        raise HTTPException(status_code=404, detail="등록된 프로필이 없습니다")
+
+    db.delete(profile)
+    db.commit()
