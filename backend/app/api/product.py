@@ -17,12 +17,13 @@ from app.schemas.product import ProductListResponse, ProductDetailResponse
 router = APIRouter()
 
 # 제품 목록 조회 API
-# category, skin_type: URL 뒤에 ?category=토너 처럼 붙이는 선택적 검색 조건
+# category, skin_type, q: URL 뒤에 ?category=토너 처럼 붙이는 선택적 검색 조건
 # = None으로 기본값을 줘서, 조건 없이 호출하면 전체 목록을 반환하게 함
 @router.get("", response_model=list[ProductListResponse])
 def get_products(
         category: str | None = None,
         skin_type: str | None = None,
+        q: str | None = None,
         db: Session = Depends(get_db)
 ):
     # 1단계: 기본 쿼리 준비 (아직 실행 안함, 조건만 쌓는 중)
@@ -36,7 +37,11 @@ def get_products(
     if skin_type:
         query = query.filter(Product.skin_type_target == skin_type)
 
-    # 4단계: 최종적으로 쌓인 조건대로 실제 DB 조회 실행
+    # 4단계: q(제품명 검색어)가 주어졌다면, 제품명에 그 글자가 포함된 것만 (대소문자 구분 없이)
+    if q:
+        query = query.filter(Product.product_name.ilike(f"%{q}%"))
+
+    # 5단계: 최종적으로 쌓인 조건대로 실제 DB 조회 실행
     products = query.all()
 
     return products

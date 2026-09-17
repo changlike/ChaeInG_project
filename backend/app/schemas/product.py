@@ -4,7 +4,7 @@ from pydantic import BaseModel
 # 성분 정보를 표현하는 형식 (제품 상세 조회에서 함께 보여줄 용도)
 class IngredientResponse(BaseModel):
     id: int
-    ingredient: str
+    ingredient_name: str
     efficacy: str | None = None
     caution: str | None = None
 
@@ -26,7 +26,7 @@ class ProductListResponse(BaseModel):
 class ProductDetailResponse(BaseModel):
     id: int
     product_name: str
-    branch: str | None = None
+    brand: str | None = None
     category: str | None = None
     skin_type_target: str | None = None
     source_url: str | None = None

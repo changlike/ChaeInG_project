@@ -2,7 +2,7 @@
 // 로그인한 유저만 접근 가능 (토큰 없으면 로그인 페이지로 이동)
 // 스킨타입/민감성/고민/선호·기피 성분을 입력받아 백엔드에 저장함
 import {useEffect, useState} from 'react';
-import {useNavigate} from 'react-router-dom';
+import {useNavigate, Link} from 'react-router-dom';
 import {getProfile, saveProfile} from '../api/profile';
 import Input from '../components/Input';
 
@@ -70,6 +70,10 @@ function Profile() {
     return (
         <div>
             <h1>내 피부 프로필</h1>
+
+            <p>
+                <Link to="/products">제품 목록</Link>
+            </p>
 
             <div>
                 <label>피부타입</label>
