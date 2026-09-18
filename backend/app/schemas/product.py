@@ -34,4 +34,14 @@ class ProductDetailResponse(BaseModel):
 
     class Config:
         from_attributes = True
-        
+
+# 성분 상세 조회에서 보여줄 형식 (이 성분이 들어간 제품 목록까지 담음)
+class IngredientDetailResponse(BaseModel):
+    id: int
+    ingredient_name: str
+    efficacy: str | None = None
+    caution: str | None = None
+    products: list[ProductListResponse] = []        # 이 성분이 들어간 제품들 목록
+
+    class Config:
+        from_attributes = True

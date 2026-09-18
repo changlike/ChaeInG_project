@@ -65,7 +65,7 @@ function Products() {
             <h1>제품 목록</h1>
 
             <p>
-                <Link to="/favorites">내 찜 목록</Link>
+                <Link to="/favorites">내 찜 목록</Link> | <Link to="/ingredients">성분 검색</Link>
             </p>
 
             <Input

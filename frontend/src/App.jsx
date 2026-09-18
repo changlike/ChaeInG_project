@@ -6,6 +6,7 @@ import Signup from './pages/Signup';
 import Profile from './pages/Profile';
 import Products from './pages/Products';
 import Favorites from './pages/Favorites';
+import Ingredients from './pages/Ingredients';
 
 function App() {
     return (
@@ -17,6 +18,7 @@ function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/products" element={<Products />} />
                 <Route path="/favorites" element={<Favorites />} />
+                <Route path="/ingredients" element={<Ingredients />} />
             </Routes>
         </BrowserRouter>
     );
