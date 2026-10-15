@@ -117,7 +117,12 @@ docker compose --env-file backend/.env up -d
 ```bash
 cd backend
 pip install -r requirements.txt
-# .env 에 DB 접속 정보 / JWT 시크릿 설정 필요
+# .env 에 DB 접속 정보 / JWT 시크릿 설정 필요 (.env.example 참고)
+
+alembic upgrade head                      # 테이블 생성 (마이그레이션 적용)
+python -m scripts.load_products --dry-run # CSV 파싱 결과만 확인
+python -m scripts.load_products           # 제품/성분 데이터 DB 적재
+
 python -m uvicorn app.main:app --reload
 ```
 

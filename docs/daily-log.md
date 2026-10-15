@@ -8,7 +8,7 @@
 |---|---|
 | 10-01 | README 작성 (프로젝트 개요, 추천 방식, 설계 의사결정, 실행 방법) |
 | 10-13 | `통합.csv` 갱신 (현재 최종 제품 데이터) |
-| 10-15 | 프로젝트 전체 점검, 문서 작성, 보완 과제 도출. 1단계(기반 정리): `core/config.py`로 환경변수 통합 + 필수 값 검증, CORS 환경변수화(`CORS_ORIGINS`), `utcnow` 제거, 비밀번호 정책, 검색 LIKE 이스케이프, requirements 버전 고정. MySQL을 Docker(`docker-compose.yml`)로 전환 |
+| 10-15 | 프로젝트 전체 점검, 문서 작성, 보완 과제 도출. 1단계(기반 정리): `core/config.py`로 환경변수 통합 + 필수 값 검증, CORS 환경변수화(`CORS_ORIGINS`), `utcnow` 제거, 비밀번호 정책, 검색 LIKE 이스케이프, requirements 버전 고정. MySQL을 Docker(`docker-compose.yml`)로 전환. 2단계: Alembic 도입(0001 기준선, 0002 컬럼·제약), 성분표 파서와 CSV 적재 스크립트(`scripts/load_products.py`), 제품 99개·성분 878개 적재 |
 
 ## 2026-09
 
@@ -43,9 +43,10 @@
 ## 다음 할 일
 
 - [x] 설정(config) 모듈 통합, 필수 환경변수 검증, CORS 환경변수화
-- [ ] CSV 정리 및 DB 적재 스크립트
+- [x] CSV 정리 및 DB 적재 스크립트
+- [ ] 적재 제외된 5개 제품 CSV 수기 수정 후 재적재 (7, 11, 15, 25, 50행)
 - [ ] `main_concerns` 채우기 (LLM 초안 + 검수)
 - [ ] 성분 효능/주의사항 데이터 소스 조사
 - [ ] 스코어링 엔진 구현 + 테스트
-- [ ] 마이그레이션(Alembic) 설계
+- [x] 마이그레이션(Alembic) 설계
 - [ ] 로그아웃 UI, 인증 가드 공통화
