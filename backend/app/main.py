@@ -4,16 +4,15 @@ from fastapi import FastAPI
 # 다른 출처(프론트엔드 주소)에서의 요청을 허용하기 위해 필요함
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import auth, profile, product, favorite, ingredient
+from app.core.config import settings
 
 # 본 프로젝트의 서버를 하나 만듦
 # 앞으로 이 app이라는 이름으로 서버에 여러 기능(API)을 하나씩 추가할 예정
 app = FastAPI()
 
-# 프론트엔드(React) 개발 서버 주소에서 오는 요청을 허용하는 설정
+# 프론트엔드(React) 주소에서 오는 요청을 허용하는 설정 (주소 목록은 .env의 CORS_ORIGINS)
 # 이 목록에 없는 주소에서 오는 요청은 브라우저가 차단함
-origins = [
-    "http://localhost:5173",
-]
+origins = settings.CORS_ORIGINS
 
 app.add_middleware(
     CORSMiddleware,

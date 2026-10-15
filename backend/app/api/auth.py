@@ -1,6 +1,3 @@
-# .env에 적어둔 값을 읽어오기 위한 도구
-import os
-
 # 라우터를 만들기 위한 도구와 에러 발생 시 돌려줄 응답을 위한 도구
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -11,7 +8,7 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 
 # 토큰 유효시간을 계산하기 위한 날짜/시간 도구
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # JWT 토큰을 만들고 해석하기 위한 도구
 from jose import jwt
@@ -25,20 +22,14 @@ from app.models.user import User
 # 회원가입/로그인 요청·응답 형식 가져오기
 from app.schemas.user import SignupRequest, SignupResponse, LoginRequest, LoginResponse
 
+# 환경변수 설정값 (비밀 열쇠, 암호화 방식, 토큰 유효시간)
+from app.core.config import settings
+
 # get_current_user 함수 가져오기
 from app.core.auth import get_current_user
 
 # 비밀번호 암호화 방식 설정 (bycrypt 방식 사용)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# .env 파일에서 비밀 열쇠 값을 꺼내옴
-SECRET_KEY = os.getenv("SECRET_KEY")
-
-# .env 파일에서 암호화 방식을 꺼내옴, 없으면 기본값 HS256 사용
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
-
-# .env 파일에서 토큰 유효시간을 꺼내옴, 문자열로 읽히므로 숫자로 변환
-TOKEN_EXPIRE_MINUTES = int(os.getenv("TOKEN_EXPIRE_MINUTES", 60))
 
 # 이 파일 안의 API들을 하나로 묶어주는 라우터 생성
 router = APIRouter()
@@ -83,11 +74,11 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="이메일 또는 비밀번호가 틀렸습니다")
 
     # 3단계: 여기까지 통과했다면 진짜 본인이 맞다는 뜻으로 토큰을 만들어줌
-    expire = datetime.utcnow() + timedelta(minutes=TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES)
     # sub(subject): 이 토큰이 '누구의 것'인지 표시하는 값
     # exp(expire): 이 토큰이 언제 만료되는지 표시하는 값
     token_data = {"sub": user.email, "exp": expire}
-    access_token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+    access_token = jwt.encode(token_data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
     # 4단계: 만들어진 토큰을 응답으로 돌려줌
     return {"access_token": access_token, "token_type": "bearer"}

@@ -1,9 +1,10 @@
-fastapi
-uvicorn
-sqlalchemy
-pymysql
-python-dotenv
-passlib
+# 2026-10-15 기준 개발 환경(Python 3.11.9)에서 동작 확인한 버전
+fastapi==0.139.2
+uvicorn==0.51.0
+sqlalchemy==2.0.51
+pymysql==1.2.0
+python-dotenv==1.2.2
+passlib==1.7.4
 bcrypt==4.0.1
-pydantic[email]
-python-jose[cryptography]
+pydantic[email]==2.13.4
+python-jose[cryptography]==3.5.0

@@ -1,11 +1,24 @@
 # 데이터 형식(자료형) 검증을 자동으로 해주는 도구
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 
 # 회원가입할 때 "유저가 보내야 하는 데이터 형식"을 정의
 class SignupRequest(BaseModel):
     email: EmailStr     # EmailStr: 이메일 형식이 맞는지 자동으로 검사해줌
     password: str
     nickname: str
+
+    # 비밀번호 정책: 8~72자, 영문과 숫자를 각각 1개 이상 포함
+    # (72자 제한은 bcrypt가 72바이트까지만 처리하기 때문, 한글은 글자당 3바이트라 바이트 기준으로 검사)
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value):
+        if len(value) < 8:
+            raise ValueError("비밀번호는 8자 이상이어야 합니다")
+        if len(value.encode("utf-8")) > 72:
+            raise ValueError("비밀번호가 너무 깁니다 (72바이트 이하)")
+        if not any(c.isalpha() for c in value) or not any(c.isdigit() for c in value):
+            raise ValueError("비밀번호는 영문과 숫자를 모두 포함해야 합니다")
+        return value
 
 # 회원가입 성공했을 때 "서버가 돌려줄 응답 형식"을 정의
 class SignupResponse(BaseModel):

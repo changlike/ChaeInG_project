@@ -7,6 +7,9 @@ from sqlalchemy.orm import Session
 # DB 세션 관리 함수 가져오기
 from app.core.database import get_db
 
+# 검색어의 %, _ 를 일반 글자로 처리해주는 도구
+from app.core.search import escape_like, LIKE_ESCAPE_CHAR
+
 # ingredients 테이블을 표현한 모델 가져오기
 from app.models.product import Ingredient
 
@@ -23,7 +26,9 @@ def search_ingredients(q: str | None = None, db: Session = Depends(get_db)):
     query = db.query(Ingredient)
 
     if q:
-        query = query.filter(Ingredient.ingredient_name.ilike(f"%{q}%"))
+        query = query.filter(
+            Ingredient.ingredient_name.ilike(f"%{escape_like(q)}%", escape=LIKE_ESCAPE_CHAR)
+        )
 
     return query.all()
 
