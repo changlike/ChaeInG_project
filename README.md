@@ -156,4 +156,5 @@ npm run dev
 
 ## 문서
 
+- [인수인계(Handoff)](docs/handoff.md) · [데이터/LLM 원칙](docs/data-and-llm-policy.md)
 - [PRD](docs/prd.md) · [API 명세](docs/api-spec.md) · [ERD](docs/erd.md) · [사용자 흐름](docs/user-flow.md) · [디자인 시스템](docs/design-system.md) · [작업 일지](docs/daily-log.md)
