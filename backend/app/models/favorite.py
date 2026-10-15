@@ -1,5 +1,5 @@
 # 컬럼 타입을 정의할 때 쓰는 도구들
-from sqlalchemy import Column, Integer, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, Integer, TIMESTAMP, ForeignKey, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -12,6 +12,8 @@ from app.models.product import Product
 # favorites 테이블을 파이썬 클래스로 표현한 것
 class Favorite(Base):
     __tablename__ = "favorites"
+    # 같은 유저가 같은 제품을 중복으로 찜할 수 없음 (DB 차원에서도 보장)
+    __table_args__ = (UniqueConstraint("user_id", "product_id", name="uq_favorite_user_product"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
