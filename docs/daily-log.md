@@ -8,7 +8,7 @@
 |---|---|
 | 10-01 | README 작성 (프로젝트 개요, 추천 방식, 설계 의사결정, 실행 방법) |
 | 10-13 | `통합.csv` 갱신 (현재 최종 제품 데이터) |
-| 10-15 | 프로젝트 전체 점검, 문서 작성, 보완 과제 도출. 1단계(기반 정리): `core/config.py`로 환경변수 통합 + 필수 값 검증, CORS 환경변수화(`CORS_ORIGINS`), `utcnow` 제거, 비밀번호 정책, 검색 LIKE 이스케이프, requirements 버전 고정 |
+| 10-15 | 프로젝트 전체 점검, 문서 작성, 보완 과제 도출. 1단계(기반 정리): `core/config.py`로 환경변수 통합 + 필수 값 검증, CORS 환경변수화(`CORS_ORIGINS`), `utcnow` 제거, 비밀번호 정책, 검색 LIKE 이스케이프, requirements 버전 고정. MySQL을 Docker(`docker-compose.yml`)로 전환 |
 
 ## 2026-09
 

@@ -1,0 +1,32 @@
+# 개발용 MySQL 컨테이너
+# 접속 정보는 backend/.env 값을 그대로 사용 (비밀번호를 이 파일에 쓰지 않음)
+#
+# 실행:  docker compose --env-file backend/.env up -d
+# 중지:  docker compose down            (데이터 유지)
+# 초기화: docker compose down -v        (데이터까지 삭제)
+#
+# 주의: backend/.env 의 DB_USER 가 root 여야 함 (root 계정 + DB_NAME 데이터베이스를 자동 생성)
+services:
+  db:
+    image: mysql:8.0
+    container_name: chaeing-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - chaeing_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  chaeing_mysql_data:

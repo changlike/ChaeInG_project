@@ -64,7 +64,7 @@
 | Frontend | React 19, React Router 7, Vite |
 | Backend | Python, FastAPI, SQLAlchemy, Pydantic |
 | Auth | JWT (python-jose), bcrypt (passlib) |
-| Database | MySQL (PyMySQL) |
+| Database | MySQL 8 (Docker, PyMySQL) |
 | LLM / RAG (예정) | LangChain, FAISS, LLM API |
 | 버전 관리 | Git, GitHub |
 
@@ -104,6 +104,13 @@ ChaeInG_project/
 서버 실행 후 `http://localhost:8000/docs` (Swagger UI)에서 상세 명세를 확인할 수 있습니다. 설계 문서는 [`docs/api-spec.md`](docs/api-spec.md)를 참고하세요.
 
 ## 실행 방법
+
+### Database (Docker)
+
+```bash
+# backend/.env 를 먼저 준비 (backend/.env.example 참고, DB_USER=root)
+docker compose --env-file backend/.env up -d
+```
 
 ### Backend
 
