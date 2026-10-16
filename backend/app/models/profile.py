@@ -14,7 +14,7 @@ class SkinProfile(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     # 이 프로필이 "누구의" 프로필인지 users 테이블의 id를 참조 (외래키)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
 
     skin_type = Column(String(20), nullable=False)
     is_sensitive = Column(Boolean, default=False)

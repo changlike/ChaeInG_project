@@ -7,6 +7,9 @@ from sqlalchemy.orm import Session
 # DB 세션 관리 함수 가져오기
 from app.core.database import get_db
 
+# 검색어의 %, _ 를 일반 글자로 처리해주는 도구
+from app.core.search import escape_like, LIKE_ESCAPE_CHAR
+
 # products, ingredients 테이블을 표현한 모델 가져오기
 from app.models.product import Product
 
@@ -39,7 +42,9 @@ def get_products(
 
     # 4단계: q(제품명 검색어)가 주어졌다면, 제품명에 그 글자가 포함된 것만 (대소문자 구분 없이)
     if q:
-        query = query.filter(Product.product_name.ilike(f"%{q}%"))
+        query = query.filter(
+            Product.product_name.ilike(f"%{escape_like(q)}%", escape=LIKE_ESCAPE_CHAR)
+        )
 
     # 5단계: 최종적으로 쌓인 조건대로 실제 DB 조회 실행
     products = query.all()

@@ -1,6 +1,3 @@
-# .env에 적어둔 값을 읽어오기 위한 도구
-import os
-
 # 라우터에서 이 함수를 의존성으로 쓰기 위한 도구 (Depends), 인증 실패 시 에러 응답을 위한 도구 (HTTPException)
 from fastapi import Depends, HTTPException
 
@@ -19,11 +16,8 @@ from app.core.database import get_db
 # users 테이블을 표현한 모델 가져오기
 from app.models.user import User
 
-# .env 파일에서 비밀 열쇠 값을 꺼내옴 (로그인 API에서 토큰 만들 때 쓴 것과 반드시 동일해야 함)
-SECRET_KEY = os.getenv("SECRET_KEY")
-
-# .env 파일에서 암호화 방식을 꺼내옴, 없으면 기본값 HS256 사용
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
+# 환경변수 설정값 (로그인 API에서 토큰 만들 때 쓴 비밀 열쇠와 반드시 동일해야 함)
+from app.core.config import settings
 
 # HTTPBearer: 요청 헤더에서 "Bearer 토큰값" 형태의 토큰을 그대로 꺼내주는 단순한 인증 방식
 # (username/password 로그인 폼이 아니라, 이미 발급된 토큰 문자열 하나만 받는 방식)
@@ -50,7 +44,7 @@ def get_current_user(
     # 1단계: 토큰 해석 시도
     try:
         # SECRET_KEY로 위조 여부를 확인하고, 만료 시간도 자동으로 검사함
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
 
         # 토큰을 만들 때 넣었던 "sub" 값(이메일)을 꺼냄
         email = payload.get("sub")
