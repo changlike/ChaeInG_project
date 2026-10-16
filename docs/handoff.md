@@ -230,6 +230,7 @@ npm run dev                                   # http://localhost:5173
 
 | 문서 | 내용 |
 |---|---|
+| [data정제검수논의필요.md](data정제검수논의필요.md) | **데이터 정제·검수에서 남은 일과 결정 대기 사항 (집에서 먼저 볼 것)** |
 | [prd.md](prd.md) | 요구사항, 스코어링 설계, 로드맵, 설계 재정비 이슈 |
 | [erd.md](erd.md) | 현재 DB 구조와 한계 |
 | [api-spec.md](api-spec.md) | 구현된 API 명세 |
