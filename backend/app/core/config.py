@@ -11,9 +11,11 @@ _REQUIRED = ["DB_USER", "DB_PASSWORD", "DB_HOST", "DB_NAME", "SECRET_KEY"]
 
 
 def _validate():
+    # DATABASE_URL을 직접 주면(예: 로컬 데모용 SQLite) DB_* 값은 필요 없음
+    required = _REQUIRED if not os.getenv("DATABASE_URL") else ["SECRET_KEY"]
     # DB_PASSWORD는 비밀번호 없는 로컬 DB도 있을 수 있어 빈 값을 허용하고, 나머지는 빈 값도 없는 것으로 봄
     missing = [
-        name for name in _REQUIRED
+        name for name in required
         if os.getenv(name) is None or (name != "DB_PASSWORD" and os.getenv(name) == "")
     ]
     if missing:
@@ -32,6 +34,8 @@ class Settings:
     DB_PASSWORD = os.getenv("DB_PASSWORD")
     DB_HOST = os.getenv("DB_HOST")
     DB_NAME = os.getenv("DB_NAME")
+    # 선택: 접속 URL 전체를 직접 지정 (없으면 위 DB_* 값으로 MySQL URL을 조립)
+    DATABASE_URL = os.getenv("DATABASE_URL")
 
     # JWT 서명용 비밀 열쇠, 토큰 암호화 방식, 토큰 유효시간(분)
     SECRET_KEY = os.getenv("SECRET_KEY")

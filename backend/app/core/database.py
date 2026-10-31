@@ -6,7 +6,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # SQLAlchemy가 요구하는 형식으로 DB 접속 URL 조립
-DATABASE_URL = (
+# (DATABASE_URL을 직접 지정했다면 그 값을 그대로 씀. 예: 로컬 데모용 sqlite:///demo.db)
+DATABASE_URL = settings.DATABASE_URL or (
     f"mysql+pymysql://{settings.DB_USER}:{settings.DB_PASSWORD}"
     f"@{settings.DB_HOST}/{settings.DB_NAME}"
 )
