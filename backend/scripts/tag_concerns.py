@@ -28,7 +28,20 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--csv", type=Path, default=DEFAULT_CSV)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    parser.add_argument("--force", action="store_true", help="검수 내용이 있어도 덮어씀")
     args = parser.parse_args()
+
+    # 검수를 시작한 CSV를 실수로 덮어써서 검수 칸이 지워지는 일을 막음
+    if args.out.exists() and not args.force:
+        with open(args.out, encoding="utf-8-sig", newline="") as f:
+            reviewed = [
+                r for r in csv.DictReader(f)
+                if (r.get("reviewed") or "").strip() or (r.get("verified_concerns") or "").strip()
+            ]
+        if reviewed:
+            print(f"{args.out}에 검수한 행이 {len(reviewed)}개 있어 덮어쓰지 않습니다. "
+                  "다른 이름으로 저장하려면 --out, 그래도 덮어쓰려면 --force")
+            return
 
     concern_map = load_concern_map()
     products, _ = read_rows(args.csv)

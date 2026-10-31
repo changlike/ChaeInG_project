@@ -10,11 +10,14 @@ from app.schemas.profile import ALLOWED_CONCERNS
 TOP_N = 20
 
 # 한 고민이 "후보"가 되는 조건
-#   - strong 성분이 1개 이상 있거나
-#   - weak 성분이 서로 다른 종류로 2개 이상 있을 때
+#   - strong 계열이 1개 이상 있거나
+#   - weak 계열이 서로 다른 계열로 2개 이상 있을 때
 MIN_WEAK_HITS = 2
 
-# 후보 고민의 점수 = strong 성분 2점 + weak 성분 1점
+# 후보 고민의 점수 = strong 계열 2점 + weak 계열 1점
+# 같은 계열(family, 예: 히알루론산 변형 10종)은 한 고민 안에서 1회만 반영함
+#   → 변형 성분이 많이 들어간 제품의 점수가 부풀려지는 문제를 막기 위함
+#   → 계열 안에 strong이 하나라도 있으면 그 계열은 strong으로 봄
 STRONG_SCORE = 2
 WEAK_SCORE = 1
 
@@ -30,7 +33,8 @@ DEFAULT_MAP_PATH = Path(__file__).resolve().parents[3] / "data" / "ingredient_co
 
 
 def load_concern_map(path: Path = DEFAULT_MAP_PATH) -> list[dict]:
-    """사전 CSV를 읽어 [{ingredient_name, concern, strength, position_rule, basis}] 반환"""
+    """사전 CSV를 읽어 [{ingredient_name, concern, strength, position_rule, family, basis}] 반환
+    family가 비어 있으면 성분명 자체를 계열로 봄 (단독 성분)"""
     with open(path, encoding="utf-8-sig", newline="") as f:
         entries = [{k.strip(): (v or "").strip() for k, v in row.items()} for row in csv.DictReader(f)]
 
@@ -41,11 +45,12 @@ def load_concern_map(path: Path = DEFAULT_MAP_PATH) -> list[dict]:
             raise ValueError(f"strength 값 오류: {e}")
         if e["position_rule"] not in (RULE_TOP_N, RULE_ANY):
             raise ValueError(f"position_rule 값 오류: {e}")
+        e["family"] = e.get("family") or e["ingredient_name"]
     return entries
 
 
 def rank_concerns(ingredients: list[dict], concern_map: list[dict], top_n: int = TOP_N) -> list[dict]:
-    """후보 고민을 점수 높은 순으로 반환. [{concern, score, hits:[{name, position, strength}]}]
+    """후보 고민을 점수 높은 순으로 반환. [{concern, score, hits:[{name, position, strength, family}]}]
     점수가 같으면 근거 성분이 더 앞쪽(함량 순서가 앞)에 있는 고민을 먼저, 그래도 같으면 ALLOWED_CONCERNS 순서."""
     position_of = {i["name"]: i["position"] for i in ingredients}
 
@@ -57,14 +62,24 @@ def rank_concerns(ingredients: list[dict], concern_map: list[dict], top_n: int =
         if entry["position_rule"] == RULE_TOP_N and pos > top_n:
             continue
         evidence.setdefault(entry["concern"], []).append(
-            {"name": entry["ingredient_name"], "position": pos, "strength": entry["strength"]}
+            {
+                "name": entry["ingredient_name"],
+                "position": pos,
+                "strength": entry["strength"],
+                "family": entry.get("family") or entry["ingredient_name"],
+            }
         )
 
     candidates = []
     for order, concern in enumerate(ALLOWED_CONCERNS):
         hits = evidence.get(concern, [])
-        strong = [h for h in hits if h["strength"] == "strong"]
-        weak = [h for h in hits if h["strength"] == "weak"]
+        # 계열별로 묶어서 strong 계열 / weak 계열을 셈 (근거 성분 목록 hits는 전부 유지)
+        family_strength: dict[str, str] = {}
+        for h in hits:
+            if family_strength.get(h["family"]) != "strong":
+                family_strength[h["family"]] = h["strength"]
+        strong = [f for f, st in family_strength.items() if st == "strong"]
+        weak = [f for f, st in family_strength.items() if st == "weak"]
         if strong or len(weak) >= MIN_WEAK_HITS:
             hits = sorted(hits, key=lambda h: h["position"])
             score = len(strong) * STRONG_SCORE + len(weak) * WEAK_SCORE
