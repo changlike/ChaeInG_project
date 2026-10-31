@@ -1,10 +1,11 @@
 // 제품 목록/검색 페이지 컴포넌트
 // 로그인 없이도 볼 수 있음. 찜하기는 로그인한 사람만 가능(토큰 없으면 로그인 페이지로 이동)
 import {useEffect, useState} from 'react';
-import {useNavigate, Link} from 'react-router-dom';
+import {useNavigate} from 'react-router-dom';
 import {getProducts} from '../api/product';
 import {getFavorites, addFavorite, removeFavorite} from '../api/favorite';
 import Input from '../components/Input';
+import {getToken} from '../auth';
 
 function Products() {
     const navigate = useNavigate();
@@ -26,7 +27,7 @@ function Products() {
 
     // 로그인한 상태라면 내 찜 목록을 불러와서, 이미 찜한 제품에 하트를 채워서 보여줌
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const token = getToken();
         if (!token) return;
 
         getFavorites(token).then((favorites) => {
@@ -41,9 +42,9 @@ function Products() {
 
     // 찜하기/찜취소 버튼 클릭 시 실행되는 함수
     const toggleFavorite = async (productId) => {
-        const token = localStorage.getItem('token');
+        const token = getToken();
         if (!token) {
-            navigate('/login');
+            navigate('/login', {state: {from: '/products'}});
             return;
         }
 
@@ -61,12 +62,8 @@ function Products() {
     };
 
     return (
-        <div>
+        <div className="page">
             <h1>제품 목록</h1>
-
-            <p>
-                <Link to="/favorites">내 찜 목록</Link> | <Link to="/ingredients">성분 검색</Link>
-            </p>
 
             <Input
                 type="text"
@@ -82,15 +79,27 @@ function Products() {
                 ))}
             </select>
 
-            <ul>
-                {products.map((product) => (
-                    <li key={product.id}>
-                        {product.brand} - {product.product_name} ({product.category})
-                        <button onClick={() => toggleFavorite(product.id)}>
-                            {favoritedIds.has(product.id) ? '찜 취소' : '찜하기'}
-                        </button>
-                    </li>
-                ))}
+            <ul className="card-list">
+                {products.map((product) => {
+                    const favorited = favoritedIds.has(product.id);
+                    return (
+                        <li key={product.id} className="card card-row">
+                            <div>
+                                <span className="muted small">{product.brand} · {product.category}</span>
+                                <h2>{product.product_name}</h2>
+                            </div>
+                            {/* 찜 하트: 찜한 상태는 코랄 ♥, 아니면 회색 ♡ */}
+                            <button
+                                className="heart"
+                                aria-pressed={favorited}
+                                aria-label={favorited ? '찜 취소' : '찜하기'}
+                                onClick={() => toggleFavorite(product.id)}
+                            >
+                                {favorited ? '♥' : '♡'}
+                            </button>
+                        </li>
+                    );
+                })}
             </ul>
         </div>
     );

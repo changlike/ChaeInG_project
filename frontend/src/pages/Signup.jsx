@@ -19,6 +19,8 @@ function Signup() {
     const [password, setPassword] = useState('');
     // 닉네임 입력값을 저장하는 상태(nickname)와 갱신 함수(setNickname), 초기값은 빈 문자열
     const [nickname, setNickname] = useState('');
+    // 회원가입 실패 이유를 화면에 보여주기 위한 상태
+    const [errorMessage, setErrorMessage] = useState('');
     // 회원가입 성공 후 로그인 페이지로 이동시키기 위한 함수
     const navigate = useNavigate();
 
@@ -26,20 +28,19 @@ function Signup() {
     // 백엔드 API를 호출하고, 성공하면 로그인 페이지로 이동시킴
     const handleSignup = async () => {
         try {
-            const result = await signupUser(email, password, nickname);
-            console.log('회원가입 성공, 응답:', result);
-            alert('회원가입이 완료되었습니다. 로그인해주세요.');
-            navigate('/login');
+            await signupUser(email, password, nickname);
+            // 완료 안내는 로그인 화면에서 보여줌
+            navigate('/login', {state: {message: '회원가입이 완료되었습니다. 로그인해주세요.'}});
         } catch (error) {
-            console.log('회원가입 실패:', error.message);
+            setErrorMessage(error.message);
         }
     };
 
     // 실제로 화면에 그려질 내용을 반환
     return (
-        <div>
+        <div className="page narrow">
             {/* 페이지 제목 */}
-            <h1>회원가입 페이지</h1>
+            <h1>회원가입</h1>
 
             {/* 이메일 입력창: type="text"로 일반 텍스트 입력 */}
             {/* value={email}로 현재 email 상태값을 입력창에 표시 */}
@@ -67,7 +68,11 @@ function Signup() {
                 onChange={(e) => setNickname(e.target.value)}
             />
 
-            <button onClick={handleSignup}>회원가입</button>
+            <p className="small muted">비밀번호는 8자 이상, 영문과 숫자를 모두 포함해야 해요.</p>
+
+            {/* 회원가입 버튼은 스카이블루 테두리 (design-system.md) */}
+            <button className="button-outline" onClick={handleSignup}>회원가입</button>
+            {errorMessage && <p className="error">{errorMessage}</p>}
 
             <p>
                 이미 계정이 있으신가요? <Link to="/login">로그인</Link>

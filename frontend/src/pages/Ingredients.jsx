@@ -2,7 +2,6 @@
 // 성분명으로 검색하고, 클릭하면 그 성분이 들어간 제품 목록을 보여줌 (역방향 조회)
 // 효능/주의사항 데이터는 아직 없어서 화면에 표시하지 않음
 import {useEffect, useState} from 'react';
-import {Link} from 'react-router-dom';
 import {searchIngredients, getIngredientDetail} from '../api/ingredient';
 
 function Ingredients() {
@@ -29,12 +28,8 @@ function Ingredients() {
     };
 
     return (
-        <div>
+        <div className="page">
             <h1>성분 검색</h1>
-
-            <p>
-                <Link to="/products">제품 목록</Link>
-            </p>
 
             <input
                 type="text"

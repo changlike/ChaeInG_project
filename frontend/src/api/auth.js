@@ -1,7 +1,9 @@
+import {API_BASE, readErrorMessage} from './config';
+
 // 로그인 API 요청 함수
 // 이메일, 비밀번호를 백엔드로 전송하고, 응답(JWT 토큰 등)을 반환함
 export async function loginUser(email, password) {
-    const response = await fetch('http://127.0.0.1:8000/api/auth/login', {
+    const response = await fetch(API_BASE + '/api/auth/login', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -22,7 +24,7 @@ export async function loginUser(email, password) {
 // 회원가입 API 요청 함수
 // 이메일, 비밀번호, 닉네임을 백엔드로 전송하고, 응답(생성된 유저 정보)을 반환함
 export async function signupUser(email, password, nickname) {
-    const response = await fetch('http://127.0.0.1:8000/api/auth/signup', {
+    const response = await fetch(API_BASE + '/api/auth/signup', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -32,7 +34,8 @@ export async function signupUser(email, password, nickname) {
 
     // 응답이 실패(400 등)면 에러를 발생시킴
     if (!response.ok) {
-        throw new Error('회원가입 실패: 입력한 정보를 확인하세요');
+        // 이미 가입된 이메일(400), 비밀번호 정책 위반(422) 등 서버가 알려준 이유를 그대로 보여줌
+        throw new Error(await readErrorMessage(response, '회원가입 실패: 입력한 정보를 확인하세요'));
     }
 
     // 성공하면 응답 데이터(JSON)를 반환함

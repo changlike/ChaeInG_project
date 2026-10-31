@@ -1,6 +1,8 @@
+import {API_BASE} from './config';
+
 // 내 찜 목록 조회 API 요청 함수
 export async function getFavorites(token) {
-    const response = await fetch('http://127.0.0.1:8000/api/favorites', {
+    const response = await fetch(API_BASE + '/api/favorites', {
         headers: {
             'Authorization': 'Bearer ' + token,
         },
@@ -15,7 +17,7 @@ export async function getFavorites(token) {
 
 // 찜하기 API 요청 함수
 export async function addFavorite(token, productId) {
-    const response = await fetch('http://127.0.0.1:8000/api/favorites', {
+    const response = await fetch(API_BASE + '/api/favorites', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -33,7 +35,7 @@ export async function addFavorite(token, productId) {
 
 // 찜 취소 API 요청 함수
 export async function removeFavorite(token, productId) {
-    const response = await fetch('http://127.0.0.1:8000/api/favorites/' + productId, {
+    const response = await fetch(API_BASE + '/api/favorites/' + productId, {
         method: 'DELETE',
         headers: {
             'Authorization': 'Bearer ' + token,

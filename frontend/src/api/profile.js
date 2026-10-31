@@ -1,7 +1,9 @@
+import {API_BASE} from './config';
+
 // 프로필 조회 API 요청 함수
 // 토큰을 헤더에 실어 보내서, 로그인한 유저 본인의 프로필을 받아옴
 export async function getProfile(token) {
-    const response = await fetch('http://127.0.0.1:8000/api/profile', {
+    const response = await fetch(API_BASE + '/api/profile', {
         headers: {
             'Authorization': 'Bearer ' + token,
         },
@@ -21,7 +23,7 @@ export async function getProfile(token) {
 
 // 프로필 등록/수정 API 요청 함수 (있으면 수정, 없으면 새로 생성됨)
 export async function saveProfile(token, profileData) {
-    const response = await fetch('http://127.0.0.1:8000/api/profile', {
+    const response = await fetch(API_BASE + '/api/profile', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

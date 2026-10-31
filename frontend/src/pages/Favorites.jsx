@@ -1,45 +1,43 @@
 // 내 찜 목록 페이지 컴포넌트
-// 로그인한 유저만 접근 가능 (토큰 없으면 로그인 페이지로 이동)
+// 로그인한 유저만 접근 가능 (App.jsx의 RequireAuth가 확인)
 import {useEffect, useState} from 'react';
-import {useNavigate, Link} from 'react-router-dom';
 import {getFavorites, removeFavorite} from '../api/favorite';
+import {getToken} from '../auth';
 
 function Favorites() {
-    const navigate = useNavigate();
     const [favorites, setFavorites] = useState([]);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            navigate('/login');
-            return;
-        }
-
-        getFavorites(token).then(setFavorites);
-    }, [navigate]);
+        getFavorites(getToken()).then(setFavorites);
+    }, []);
 
     // 찜 취소 버튼 클릭 시 실행되는 함수
     const handleRemove = async (productId) => {
-        const token = localStorage.getItem('token');
-        await removeFavorite(token, productId);
+        await removeFavorite(getToken(), productId);
         setFavorites((prev) => prev.filter((f) => f.product.id !== productId));
     };
 
     return (
-        <div>
+        <div className="page">
             <h1>내 찜 목록</h1>
-
-            <p>
-                <Link to="/products">제품 목록으로</Link>
-            </p>
 
             {favorites.length === 0 && <p>찜한 제품이 없습니다.</p>}
 
-            <ul>
+            <ul className="card-list">
                 {favorites.map((favorite) => (
-                    <li key={favorite.id}>
-                        {favorite.product.brand} - {favorite.product.product_name} ({favorite.product.category})
-                        <button onClick={() => handleRemove(favorite.product.id)}>찜 취소</button>
+                    <li key={favorite.id} className="card card-row">
+                        <div>
+                            <span className="muted small">{favorite.product.brand} · {favorite.product.category}</span>
+                            <h2>{favorite.product.product_name}</h2>
+                        </div>
+                        <button
+                            className="heart"
+                            aria-pressed={true}
+                            aria-label="찜 취소"
+                            onClick={() => handleRemove(favorite.product.id)}
+                        >
+                            ♥
+                        </button>
                     </li>
                 ))}
             </ul>
