@@ -20,12 +20,13 @@
 
 | # | 기능 | 상태 |
 |---|---|---|
-| 1 | 회원가입 / 로그인 (JWT) | 완료 (로그아웃 UI 미구현) |
+| 1 | 회원가입 / 로그인 / 로그아웃 (JWT) | 완료 (공통 인증 가드) |
 | 2 | 피부 프로필 등록 / 조회 / 수정 / 삭제 | 완료 |
 | 3 | 즐겨찾기 (찜하기 / 목록 / 취소) | 완료 |
 | 4 | 화장품 검색 (제품명 / 브랜드 / 카테고리) | 완료 |
 | 5 | 성분 검색 (성분명 검색 + 해당 성분이 든 제품 역조회) | 완료 (성분 효능·주의사항 설명 데이터는 미확보) |
-| 6 | 추천 챗봇 (RAG + 스코어링 엔진) | 설계 확정, 구현 예정 |
+| 6 | 맞춤 추천 (Rule-Based 스코어링 엔진 + 추천 화면) | 완료 (주력 고민 태그 검수 진행 중) |
+| 7 | 추천 챗봇 (RAG, 엔진 결과 설명) | 설계 확정, 구현 예정 |
 
 ### 피부 프로필 항목
 
@@ -38,9 +39,11 @@
 
 **Rule-Based 스코어링**으로 판단하며, LLM은 그 결과를 자연어로 *설명*하는 역할만 합니다. (LLM이 직접 추천을 판단하지 않음)
 
-1. **게이트 (통과/탈락)** — 민감성 사용자 + 자극 유발 성분 포함 제품, 규제 금지 성분 포함 제품은 탈락
-2. **가산점** — 사용자의 피부 고민과 제품의 "주력 고민" 태그가 겹치는 개수 표시 (예: "고민 3개 중 2개 매칭") 후 매칭 수 순 정렬
+1. **게이트 (통과/탈락)** — 민감성 사용자 + 자극 유발 성분, 규제 금지 성분, 사용자가 적은 기피 성분 포함 제품은 탈락. 탈락 제품도 버리지 않고 **사유와 함께** 보여줌
+2. **가산점** — 사용자의 피부 고민과 제품의 "주력 고민" 태그가 겹치는 개수 표시 (예: "고민 3개 중 2개 매칭") 후 매칭 수 순 정렬. 선호 성분은 점수에 더하지 않고 동점일 때 순서만 정함
 3. **경고 문구** — 배합 한도가 있는 성분 포함 시 참고용 경고만 표시 (점수 무관)
+
+제품의 "주력 고민"은 **성분→고민 사전 + 규칙**(`concern_tagger.py`)으로 초안을 만들고 사람이 검수한 값만 추천에 씁니다. 같은 계열 성분(예: 히알루론산 변형 10종)은 점수에 1회만 반영합니다.
 
 챗봇은 ① 성분 Q&A (FAISS 검색 기반 RAG), ② 추천 요청 (스코어링 엔진 호출) 두 갈래로 구성될 예정입니다.
 
@@ -74,20 +77,21 @@
 ChaeInG_project/
 ├─ backend/
 │  ├─ app/
-│  │  ├─ api/        # 라우터 (auth, profile, product, favorite, ingredient)
+│  │  ├─ api/        # 라우터 (auth, profile, product, favorite, ingredient, recommendation)
 │  │  ├─ core/       # DB 연결, 인증 유틸
 │  │  ├─ models/     # SQLAlchemy 모델
 │  │  ├─ schemas/    # Pydantic 스키마
-│  │  ├─ services/   # 비즈니스 로직 (스코어링 엔진 예정)
+│  │  ├─ services/   # 성분 파서, 주력 고민 태거, 스코어링 엔진(recommender)
 │  │  └─ main.py
-│  ├─ tests/
+│  ├─ scripts/     # CSV 적재, 고민 초안 생성, 검수값 반영
+│  ├─ tests/      # pytest (엔진 단위 테스트 + SQLite API 테스트)
 │  └─ requirements.txt
 ├─ frontend/
 │  └─ src/
 │     ├─ api/        # 백엔드 호출 함수
-│     ├─ components/
-│     └─ pages/      # Login, Signup, Profile, Products, Favorites, Ingredients
-├─ data/             # 카테고리별 제품/성분 CSV
+│     ├─ components/ # NavBar, RequireAuth(인증 가드), Input
+│     └─ pages/      # Login, Signup, Profile, Recommend, Products, Favorites, Ingredients
+├─ data/             # 제품/성분 CSV, 성분→고민 사전, 자극 성분 목록, 규제 성분
 └─ docs/             # prd, api-spec, erd, user-flow, design-system, daily-log
 ```
 
@@ -100,6 +104,7 @@ ChaeInG_project/
 | `/api/products` | 제품 목록 / 검색 |
 | `/api/favorites` | 즐겨찾기 |
 | `/api/ingredients` | 성분 검색 / 성분별 제품 조회 |
+| `/api/recommendations` | 내 프로필 기반 추천 (게이트 → 고민 매칭 → 경고) |
 
 서버 실행 후 `http://localhost:8000/docs` (Swagger UI)에서 상세 명세를 확인할 수 있습니다. 설계 문서는 [`docs/api-spec.md`](docs/api-spec.md)를 참고하세요.
 
@@ -123,6 +128,29 @@ alembic upgrade head                      # 테이블 생성 (마이그레이션
 python -m scripts.load_products --dry-run # CSV 파싱 결과만 확인
 python -m scripts.load_products           # 제품/성분 데이터 DB 적재
 
+python -m scripts.tag_concerns            # 주력 고민 초안 CSV 생성 (data/main_concerns_draft.csv)
+python -m scripts.apply_concerns          # 검수 완료(reviewed 표시) 행만 DB 반영
+
+python -m uvicorn app.main:app --reload
+```
+
+### 테스트
+
+```bash
+cd backend
+python -m pytest -q    # DB 없이 실행 (API 테스트는 메모리 SQLite 사용)
+```
+
+### Docker 없이 데모 실행 (SQLite)
+
+`DATABASE_URL`을 지정하면 MySQL 대신 해당 DB를 씁니다. 테이블은 모델 정의로 생성합니다.
+
+```bash
+cd backend
+export DATABASE_URL=sqlite:///demo.db SECRET_KEY=dev-secret
+python -c "from app.core.database import Base, engine; from app.models import user, profile, product, favorite; Base.metadata.create_all(engine)"
+python -m scripts.load_products
+python -m scripts.apply_concerns --with-drafts   # 검수 전 초안도 반영 (화면에서 '검수 전 태그'로 표시)
 python -m uvicorn app.main:app --reload
 ```
 
@@ -136,8 +164,9 @@ npm run dev
 
 ## 데이터 소스
 
-- **제품 / 성분**: 올리브영 상품 페이지를 직접 확인하여 CSV로 수기 입력 (이용약관상 자동 크롤링은 하지 않음). 현재 5개 카테고리(에센스/세럼/앰플, 스킨/토너, 로션, 크림, 미스트/오일) 105개 제품 확보 (`data/ChaeInG_data - 통합.csv`). 주력 고민 태깅(`main_concern`)과 DB 적재는 진행 예정.
-- **금지 / 한도 성분**: 공공데이터포털 "식품의약품안전처_화장품 사용제한 원료정보" API
+- **제품 / 성분**: 올리브영 상품 페이지를 직접 확인하여 CSV로 수기 입력 (이용약관상 자동 크롤링은 하지 않음). 현재 5개 카테고리(에센스/세럼/앰플, 스킨/토너, 로션, 크림, 미스트/오일) 105개 제품 확보 (`data/ChaeInG_data - 통합.csv`). 104개 적재 완료(중복 1개 제외), 주력 고민은 규칙 초안 생성 후 검수 중.
+- **금지 / 한도 성분**: 공공데이터포털 "식품의약품안전처_화장품 사용제한 원료정보" API → `data/regulated_ingredients.csv` (엔진 연동 완료, 데이터 수집 대기)
+- **자극 유발 성분(민감성 게이트)**: `data/irritant_ingredients.csv` — 향료, 알레르기 유발 향료 성분, 앞쪽 함량 구간의 알코올, 에센셜 오일 (초안, 검수 필요)
 - **고민-성분 효능 데이터**: 미확보 — 제품 단위 수동 태깅(`main_concerns`)으로 우회
 
 ## 진행 현황
@@ -147,10 +176,12 @@ npm run dev
 - [x] 즐겨찾기
 - [x] 화장품 검색
 - [x] 성분 검색
-- [ ] 제품 데이터 DB 적재 · 주력 고민 태깅
-- [ ] 스코어링 엔진 (설계 완료)
+- [x] 제품 데이터 DB 적재
+- [ ] 주력 고민 태깅 (규칙·초안 완료, 사람 검수 진행 중)
+- [x] 스코어링 엔진 + 추천 API + 추천 화면
+- [x] 로그아웃 · 공통 인증 가드 · 상단 네비게이션
 - [ ] RAG 챗봇 (설계 완료)
-- [ ] 통합 테스트
+- [x] 테스트 (pytest 50개: 파서, 태거, 엔진, 검수 반영, API 흐름)
 - [ ] 배포 (토큰 저장을 `localStorage` → httpOnly 쿠키로 전환 검토)
 - [ ] 문서화 (erd · api-spec · user-flow · daily-log 작성 완료, design-system은 TBD)
 

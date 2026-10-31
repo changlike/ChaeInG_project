@@ -82,11 +82,39 @@
 - POST: `400` 존재하지 않는 제품 / 이미 찜한 제품
 - DELETE: `404` 찜 기록 없음
 
+## Recommendations — `/api/recommendations` (인증 필요)
+
+| Method | Path | 설명 |
+|---|---|---|
+| GET | `` | 내 피부 프로필로 추천 실행. 쿼리: `category`(정확 일치), `limit`(기본 20), `include_unverified`(기본 false, 개발·데모용) |
+
+- 프로필이 없으면 `404`
+- 판단 순서: 게이트(민감성 자극 성분 / 금지 성분 / 기피 성분 → 탈락) → 고민 매칭 개수 순 정렬(동점이면 선호 성분 포함 개수) → 한도 성분 경고
+- 주력 고민이 검수되지 않은(`is_concerns_verified=false`) 제품은 기본적으로 제외하고 개수만 `skipped_unverified`로 알려 줌
+
+```json
+// Response 200
+{
+  "recommended": [{
+    "id": 3, "product_name": "...", "brand": "...", "category": "크림",
+    "main_concerns": ["모공", "미백/톤"], "is_concerns_verified": true,
+    "matched_concerns": ["모공"], "match_count": 1, "total_concerns": 2,
+    "preferred_hits": ["나이아신아마이드"],
+    "warnings": [{ "ingredient": "...", "limit_cond": "..." }]
+  }],
+  "excluded": [{
+    "id": 7, "product_name": "...", "...": "...",
+    "reasons": [{ "type": "sensitive", "ingredient": "향료", "detail": "향료" }]
+  }],
+  "skipped_unverified": 0
+}
+```
+- `reasons[].type`: `sensitive`(민감성 + 자극 성분), `banned`(사용 금지 원료), `avoided`(사용자 기피 성분, 부분 일치)
+
 ## 미구현 / TBD
 
 | 항목 | 상태 |
 |---|---|
-| 추천 API (스코어링 엔진 호출) | 설계 확정, 미구현 |
 | 챗봇 API (성분 Q&A RAG / 추천 요청) | 설계 확정, 미구현 |
 | 목록 페이지네이션 | 미적용 (데이터 확대 시 도입) |
 | 에러 응답 형식 통일 | 현재 FastAPI 기본 `{"detail": ...}` |
