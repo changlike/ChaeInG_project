@@ -43,3 +43,6 @@ dist/
 
 # Node.js (frontend)
 node_modules/
+
+# Project data (product CSVs, dictionaries)
+data/
