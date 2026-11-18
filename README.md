@@ -17,7 +17,7 @@
 | 단계 | 내용 |
 |---|---|
 | **v1 (진행 중)** | 올리브영 수기 수집 약 100개(5개 카테고리 × 20개)를 추천 범위로, 프로필 기반 추천 상위 3개와 근거 제시 |
-| v1.5 | LLM 연동: 자연어 요청("잡티에 좋은데 00 빼고") 해석, 추천 결과 설명 생성. 웹 vs 채팅 UI 결정 |
+| v1.5 | LLM 연동: 자연어 요청("잡티에 좋은데 00 빼고") 해석, 추천 결과 설명 생성. **채팅형 메인 화면**(결과는 정형 카드 + 설명 문장) |
 | 이후 | 데이터 확대, 공공데이터 기반 성분 사전·RAG, 색조 등 카테고리 확장 |
 
 - 개발 기간: 2026-07-13 ~ (진행 중)
@@ -42,7 +42,7 @@
 | 3 | 즐겨찾기 (찜하기 / 목록 / 취소) | 완료 |
 | 4 | 화장품 검색 (제품명 / 브랜드 / 카테고리) | 완료 |
 | 5 | 성분 검색 (성분명 검색 + 해당 성분이 든 제품 역조회) | 완료 (성분 효능·주의사항 설명 데이터는 미확보) |
-| 6 | 맞춤 추천 (Rule-Based 스코어링 엔진 + 추천 화면) | 완료 (주력 고민 태그 검수 진행 중) |
+| 6 | 맞춤 추천 (Rule-Based 스코어링 엔진 + 추천 화면) | 엔진·화면 완료. 제품 주력 고민은 핵심 성분 규칙 재정비 후 재생성 예정 |
 | 7 | LLM 연동 (자연어 요청 해석, 추천 결과 설명, 챗봇/에이전트 구조) | 방향 확정, 구현 예정 |
 
 ### 피부 프로필 항목
@@ -108,7 +108,7 @@ ChaeInG_project/
 │     ├─ api/        # 백엔드 호출 함수
 │     ├─ components/ # NavBar, RequireAuth(인증 가드), Input
 │     └─ pages/      # Login, Signup, Profile, Recommend, Products, Favorites, Ingredients
-├─ data/             # 제품/성분 CSV, 성분→고민 사전, 자극 성분 목록, 규제 성분
+├─ data/             # 제품/성분 CSV, 성분→고민 사전, 자극 성분 목록 (.gitignore, 저장소에 포함되지 않음)
 └─ docs/             # prd, api-spec, erd, user-flow, design-system, daily-log
 ```
 
@@ -145,7 +145,7 @@ alembic upgrade head                      # 테이블 생성 (마이그레이션
 python -m scripts.load_products --dry-run # CSV 파싱 결과만 확인
 python -m scripts.load_products           # 제품/성분 데이터 DB 적재
 
-python -m scripts.tag_concerns            # 주력 고민 초안 CSV 생성 (data/main_concerns_draft.csv)
+python -m scripts.tag_concerns            # 주력 고민 초안 CSV 생성 (data/main_concerns_draft.csv, 핵심 성분 규칙 개편 후 재생성 예정)
 python -m scripts.apply_concerns          # 검수 완료(reviewed 표시) 행만 DB 반영
 
 python -m uvicorn app.main:app --reload
@@ -181,7 +181,7 @@ npm run dev
 
 ## 데이터 소스
 
-- **제품 / 성분**: 올리브영 상품 페이지를 직접 확인하여 CSV로 수기 입력 (이용약관상 자동 크롤링은 하지 않음). 현재 5개 카테고리(에센스/세럼/앰플, 스킨/토너, 로션, 크림, 미스트/오일) 105개 제품 확보 (`data/ChaeInG_data - 통합.csv`). 104개 적재 완료(중복 1개 제외), 주력 고민은 규칙 초안 생성 후 검수 중.
+- **제품 / 성분**: 올리브영 상품 페이지를 직접 확인하여 CSV로 수기 입력 (이용약관상 자동 크롤링은 하지 않음). 5개 카테고리(에센스/세럼/앰플, 스킨/토너, 로션, 크림, 미스트/오일) × 20개 = **100개 제품**으로 정리 (`data/ChaeInG_data - 통합.csv`, 중복 1건과 카테고리별 초과분 제외). `data/` 폴더는 `.gitignore`에 있어 저장소에 포함되지 않으므로, 실행하려면 같은 형식의 CSV를 직접 준비해야 합니다. 주력 고민은 핵심 성분 판정 규칙 개편([설계](docs/core-ingredient-rule.md)) 후 초안을 다시 생성하고 전수 검수할 예정입니다.
 - **금지 / 한도 성분**: 공공데이터포털 "식품의약품안전처_화장품 사용제한 원료정보" 연동은 v1 범위에서 제외(추후 확장). 엔진에는 `data/regulated_ingredients.csv`를 읽는 자리만 있고 현재 비어 있음
 - **자극 유발 성분(민감성 게이트)**: `data/irritant_ingredients.csv` — 향료, 알레르기 유발 향료 성분, 앞쪽 함량 구간의 알코올, 에센셜 오일 (초안, 검수 필요)
 - **고민-성분 효능 데이터**: 미확보 — 제품 단위 수동 태깅(`main_concerns`)으로 우회
@@ -194,7 +194,8 @@ npm run dev
 - [x] 화장품 검색
 - [x] 성분 검색
 - [x] 제품 데이터 DB 적재
-- [ ] 주력 고민 태깅 (규칙·초안 완료, 사람 검수 진행 중)
+- [ ] 핵심 성분 판정 규칙 개편 (제품별 경계 + 제품명 신호, [설계 완료](docs/core-ingredient-rule.md), 구현 예정)
+- [ ] 주력 고민 초안 재생성 → 100개 전수 검수 → DB 반영
 - [x] 스코어링 엔진 + 추천 API + 추천 화면
 - [x] 로그아웃 · 공통 인증 가드 · 상단 네비게이션
 - [ ] 추천 상위 3개 제시
@@ -205,5 +206,6 @@ npm run dev
 
 ## 문서
 
+- [LLM 연동 기획](docs/llm-design.md) · [핵심 성분 판정 규칙](docs/core-ingredient-rule.md)
 - [인수인계(Handoff)](docs/handoff.md) · [데이터/LLM 원칙](docs/data-and-llm-policy.md)
 - [PRD](docs/prd.md) · [API 명세](docs/api-spec.md) · [ERD](docs/erd.md) · [사용자 흐름](docs/user-flow.md) · [디자인 시스템](docs/design-system.md) · [작업 일지](docs/daily-log.md)

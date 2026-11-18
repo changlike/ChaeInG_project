@@ -24,11 +24,11 @@
 | 3 | 즐겨찾기 (찜하기/목록/취소) | 완료 |
 | 4 | 화장품 검색 (제품명/브랜드/카테고리) | 완료 |
 | 5 | 성분 검색 (성분명 검색 + 이 성분이 들어간 제품 역조회) | 완료. 단, 성분의 효능/주의사항 설명은 데이터 소스를 아직 못 찾아서 비어있음 |
-| 6 | 추천 챗봇 (RAG) | 스코어링 엔진·추천 API·추천 화면 완료 (2026-10-24). 챗봇은 미착수 — 아래 참고 |
+| 6 | 추천 채팅 (LLM 연동) | 스코어링 엔진·추천 API·추천 화면 완료 (2026-10-24). 채팅은 기획 확정, 미구현 — [llm-design.md](llm-design.md) |
 
 **추천 챗봇은 별도 "추천 폼" 페이지 없이, 챗봇 하나로 통합된 인터페이스로 설계함.** 사용자가 대화로 조건을 말하면 → 아래 4번 스코어링 엔진을 호출 → 그 결과를 자연어로 설명해서 답함. **LLM이 직접 추천을 판단하지 않고, 판단은 항상 Rule-Based 스코어링 로직이 하며 챗봇은 그 결과를 설명하는 역할만 함** (근거 있는 추천이라는 핵심 가치를 지키기 위함).
 
-챗봇 자체는 두 갈래로 나뉨: ①성분 Q&A(FAISS 검색 기반 RAG), ②추천요청(스코어링 엔진 호출). 그 외 질문은 고정된 안내 문구로 응답. 자세한 라우팅/멀티턴 설계는 별도 문서화 예정.
+**(2026-11-19 갱신)** 챗봇은 추천 요청 중심의 **3단계 파이프라인**(요청 해석 LLM → 규칙 엔진 → 설명 LLM, 각 단계 사이에 코드 검증)으로 정리함. 성분 Q&A(FAISS RAG)는 공공데이터 성분 사전을 갖춘 뒤로 보류. UI는 채팅형, 대화 맥락은 직전에 검증된 조건만 이어받는 가벼운 방식. 상세는 [llm-design.md](llm-design.md).
 
 ## 4. 피부 프로필 항목
 
@@ -65,10 +65,10 @@
 ## 6. 데이터 소스
 
 - **기피/금지 성분**: data.go.kr "식품의약품안전처_화장품 사용제한 원료정보" API (개발계정 자동승인, 하루 10,000건 무료). 필드: REGULATE_TYPE(금지/한도 등), INGR_STD_NAME, CAS_NO, COUNTRY_NAME, LIMIT_COND. 순서 정보·효능 정보는 없음 (순수 규제 데이터).
-- **제품/성분 데이터**: 올리브영에서 수동으로 수집 (자동 크롤링은 이용약관상 하지 않기로 결정 — 사람이 직접 페이지를 보고 CSV에 옮겨 적는 방식). `data/ChaeInG_data - 통합.csv`가 현재 **최종 데이터**(2026-10-15 기준 105개 제품, 5개 카테고리 × 21개: 에센스/세럼/앰플, 스킨/토너, 로션, 크림, 미스트/오일). 선크림/클렌저는 미수집. 컬럼: `product_name, brand, category, skin_type_target, full_ingredients, source_url, 확인, main_concern`.
+- **제품/성분 데이터**: 올리브영에서 수동으로 수집 (자동 크롤링은 이용약관상 하지 않기로 결정 — 사람이 직접 페이지를 보고 CSV에 옮겨 적는 방식). `data/ChaeInG_data - 통합.csv`가 현재 **최종 데이터**(2026-11-19 기준 **100개 제품, 5개 카테고리 × 20개**: 에센스/세럼/앰플, 스킨/토너, 로션, 크림, 미스트/오일. 10-15 기준 105개에서 중복 1건과 카테고리별 초과분 4건을 제외). `data/`는 `.gitignore` 대상. 선크림/클렌저는 미수집. 컬럼: `product_name, brand, category, skin_type_target, full_ingredients, source_url, 확인, main_concern`.
   - `main_concern` 컬럼은 **전부 비어 있음** → LLM 초안 생성 + 사람 검수로 채울 예정 (출력은 6개 고민 어휘로 제한)
-  - `skin_type_target`은 105개 중 101개가 "모든 피부" → 변별력 없음
-  - 이 CSV를 DB로 넣는 적재 스크립트는 아직 없음 (작성 예정)
+  - `skin_type_target`은 (정리 전 105개 기준) 101개가 "모든 피부" → 변별력 없음
+  - 적재 스크립트 `scripts/load_products.py` 완료 (CSV → DB, 멱등)
 - **고민-성분 매핑용 효능 데이터**: 아직 못 찾음 (미해결 — 이게 없어도 위 2단계처럼 "제품 단위 수동 태깅"으로 우회 중)
 - **성분 효능/주의사항(`ingredients.efficacy`, `caution`)**: 식약처 사용제한 원료정보에는 규제 정보만 있고 효능 설명은 없음. 다른 공공 성분 API 존재 여부 조사 필요 (TBD)
 
@@ -77,7 +77,7 @@
 - **Frontend**: React, JavaScript, HTML, CSS
 - **Backend**: Python, FastAPI
 - **Database**: MySQL
-- **LLM/RAG (챗봇용)**: LangChain, FAISS, LLM API
+- **LLM (채팅용, 예정)**: LLM API (구조화 출력 사용, 구성 방식은 구현 시 확정). FAISS/RAG는 보류
 - **Version Control**: Git, GitHub
 
 ## 8. 진행 현황 (전체 로드맵)
@@ -87,8 +87,8 @@
 3. 즐겨찾기 CRUD — 완료
 4. 화장품 검색 — 완료
 5. 성분 검색 — 완료
-6. 스코어링 엔진 — 완료 (2026-10-24, `services/recommender.py`, `/api/recommendations`). 주력 고민은 규칙 초안 생성 후 사람 검수 대기
-7. RAG 챗봇 — 설계 확정, 코드 미작성
+6. 스코어링 엔진 — 완료 (2026-10-24, `services/recommender.py`, `/api/recommendations`). 주력 고민은 핵심 성분 규칙 개편([core-ingredient-rule.md](core-ingredient-rule.md)) 후 재생성·전수 검수 예정
+7. LLM 채팅 — 기획 확정([llm-design.md](llm-design.md)), 코드 미작성
 8. 테스트 — pytest 50개 (엔진 단위 + SQLite API 흐름)
 9. 배포 — 미착수. 로그인 토큰을 지금은 `localStorage`에 저장 중인데, 배포 전에 httpOnly 쿠키 방식으로 전환 검토 필요
 10. 문서화 — 진행 중 (erd/api-spec/user-flow/daily-log 현행화 완료, design-system은 TBD)

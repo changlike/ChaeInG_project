@@ -74,10 +74,10 @@ erDiagram
 
 | 항목 | 내용 |
 |---|---|
-| `products.main_concerns` | 컬럼 추가 완료(마이그레이션 0002). 값은 아직 비어 있음 → LLM 초안 + 사람 검수로 채울 예정 |
+| `products.main_concerns` | 컬럼 추가 완료(마이그레이션 0002). 값은 아직 비어 있음 → 핵심 성분 규칙([core-ingredient-rule.md](core-ingredient-rule.md))으로 초안 재생성 후 사람이 전수 검수해 채울 예정 |
 | 피부 타입 적합도 | `skin_type_target`은 대부분 "모든 피부"라 변별력 없음. 자체 판단 컬럼 분리 여부 미정 |
-| 성분 순서 | `position` 저장 완료. 1% 이하 구간은 순서가 함량을 뜻하지 않으므로 스코어링에서는 앞쪽 N개만 쓸지 미정 |
+| 성분 순서 | `position` 저장 완료. 1% 이하 구간은 순서가 함량을 뜻하지 않음 → 제품별 경계 + 제품명 신호로 핵심 성분을 판정하기로 함 ([core-ingredient-rule.md](core-ingredient-rule.md)) |
 | UNIQUE 제약 | `favorites(user_id, product_id)`, `skin_profiles(user_id)`, `product_ingredients(product_id, ingredient_id)` 등 추가 완료 (0002) |
-| 규제 성분 | 금지/한도 성분 테이블 없음 (식약처 공공데이터 연동 예정) |
+| 규제 성분 | 금지/한도 성분 테이블 없음 (식약처 공공데이터 연동은 v1 범위에서 제외, 추후) |
 | 마이그레이션 | Alembic 도입 (`backend/migrations`). 0001 기준선, 0002 컬럼·제약 추가 |
 | `concerns` 저장 방식 | 콤마 문자열 → 별도 테이블 또는 JSON 컬럼 전환 검토 |

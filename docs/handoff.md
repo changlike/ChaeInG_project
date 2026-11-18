@@ -5,7 +5,16 @@
 
 ---
 
-## 0-1. 최신 상태 (2026-10-24)
+## 0-0. 최신 상태 (2026-11-19) — 이 블록이 가장 최신, 아래 0-1 이후는 과거 기록
+
+- **방향 재정리**: 성분 기반 추천, 올영 수기 수집 100개를 바운더리로, 판단은 규칙·응답 생성은 LLM. 상세는 `CLAUDE.md`의 "프로젝트 방향"과 README
+- **데이터**: `통합.csv`를 **100개(카테고리마다 20개)** 로 정리. `data/`는 `.gitignore` + git 추적 해제(과거 이력에는 남음). `data/main_concerns_draft.csv`는 삭제 → 새 규칙 구현 후 재생성
+- **새 기획서**: [core-ingredient-rule.md](core-ingredient-rule.md)(핵심 성분 판정: 제품별 경계 + 제품명 신호, 함유/주력 두 겹), [llm-design.md](llm-design.md)(요청 해석 → 엔진 → 설명 파이프라인, 평가 포함, 가벼운 대화 맥락, 채팅형 UI)
+- **진행 순서**: ① 성분 체킹(분류 체계 → 흔한 32개 → 활성 성분) → ② 분포 확인 후 점수 규칙 결정 → ③ 새 규칙 구현·초안 재생성 → ④ 100개 전수 검수 → ⑤ LLM 연동·채팅 화면
+- **폐기**: `TOP_N=20`, "보존제 첫 위치 중앙값 18"(재현 불가). 코드(`concern_tagger.py` 등)와 테스트 50개는 아직 구 규칙 기준
+- **지금 코드 상태**: 구현된 것은 인증·프로필·찜·검색·성분 검색·추천 엔진·추천 화면. LLM 연동은 미구현
+
+## 0-1. 최신 상태 (2026-10-24, 과거 기록)
 
 - 3단계: 계열(family) 1회 반영 보정 완료, 검수값 반영 스크립트 `scripts/apply_concerns.py` 작성. **남은 일: 사람 검수** (`data/main_concerns_draft.csv`의 `reviewed` 칸에 표시 → `python -m scripts.apply_concerns`)
 - 4단계 완료: `app/services/recommender.py` + `GET /api/recommendations` + 테스트 50개
