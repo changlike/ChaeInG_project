@@ -2,6 +2,7 @@ from app.services.ingredient_parser import (
     clean_source_url,
     extract_amount,
     normalize_name,
+    parse_formulas,
     parse_ingredients,
     review_reason,
     split_ingredients,
@@ -89,6 +90,19 @@ def test_parse_ingredients_splits_items_merged_after_parentheses():
     result = parse_ingredients("정제수, 하이드롤라이즈드하이알루로닉애씨드(0.1ppm) 소듐하이알루로네이트", aliases={})
     assert [r["name"] for r in result] == ["정제수", "하이드롤라이즈드하이알루로닉애씨드", "소듐하이알루로네이트"]
     assert result[1]["amount_note"] == "0.1ppm"
+
+
+def test_parse_formulas_splits_two_part_product():
+    result = parse_formulas("(1제) 정제수, 글리세린, 판테놀 (2제) 정제수, 알란토인", aliases={})
+    assert [f["formula"] for f in result] == [1, 2]
+    assert [(i["position"], i["name"]) for i in result[0]["ingredients"]] == [(1, "정제수"), (2, "글리세린"), (3, "판테놀")]
+    assert [(i["position"], i["name"]) for i in result[1]["ingredients"]] == [(1, "정제수"), (2, "알란토인")]
+
+
+def test_parse_formulas_single_formula_when_no_marker():
+    result = parse_formulas("정제수, 글리세린", aliases={})
+    assert len(result) == 1 and result[0]["formula"] == 1
+    assert [i["name"] for i in result[0]["ingredients"]] == ["정제수", "글리세린"]
 
 
 def test_review_reason():

@@ -137,6 +137,25 @@ def parse_ingredients(text: str, aliases: dict[str, str] | None = None) -> list[
     return result
 
 
+_SET_MARKER_CAPTURE = re.compile(r"\(\s*(\d)\s*제\s*\)")
+
+
+def parse_formulas(text: str, aliases: dict[str, str] | None = None) -> list[dict]:
+    """2제형 제품(예: 듀얼 크림)의 성분표를 제(劑)마다 따로 파싱함.
+    [{formula: 제 번호, ingredients: [{position, name, amount_note}]}] — 위치는 제마다 1부터 다시 셈.
+    (1제)/(2제) 표기가 없으면 제 1개로 돌려줌. 순서가 제 안에서만 함량 순서이므로 판정은 제마다 해야 함"""
+    parts = _SET_MARKER_CAPTURE.split(text)
+    if len(parts) == 1:
+        return [{"formula": 1, "ingredients": parse_ingredients(text, aliases)}]
+    formulas = []
+    head = _LABEL_PREFIX.sub("", parts[0].strip())
+    if head:  # 첫 표기 앞에 붙은 성분은 0번 제로 둠 (보통은 없음)
+        formulas.append({"formula": 0, "ingredients": parse_ingredients(head, aliases)})
+    for number, segment in zip(parts[1::2], parts[2::2]):
+        formulas.append({"formula": int(number), "ingredients": parse_ingredients(segment, aliases)})
+    return formulas
+
+
 def clean_source_url(url: str) -> str:
     """올리브영 상품 URL에서 추적용 파라미터를 제거하고 goodsNo만 남김.
     goodsNo가 없으면 (공백만 정리한) 원본을 그대로 돌려줌."""
