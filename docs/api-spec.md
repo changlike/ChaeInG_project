@@ -86,10 +86,13 @@
 
 | Method | Path | 설명 |
 |---|---|---|
-| GET | `` | 내 피부 프로필로 추천 실행. 쿼리: `category`(정확 일치), `limit`(기본 20), `include_unverified`(기본 false, 개발·데모용) |
+| GET | `` | 내 피부 프로필로 추천 실행. 쿼리: `category`(정확 일치), `limit`(기본 3, 상위 3개), `include_unverified`(기본 false, 개발·데모용) |
 
 - 프로필이 없으면 `404`
-- 판단 순서: 게이트(민감성 자극 성분 / 금지 성분 / 기피 성분 → 탈락) → 고민 매칭 개수 순 정렬(동점이면 선호 성분 포함 개수) → 한도 성분 경고
+- 판단 순서: 게이트(민감성 자극 성분 / 금지 성분 / 기피 성분 → 탈락) → 정렬 → 경고
+  - 알코올류 같은 `top_n` 자극 성분은 제품별 경계 앞이면 탈락, 경계 뒤(소량)면 탈락시키지 않고 경고(`kind: trace_irritant`)로만 알림
+  - 정렬(점수 합산 없음): ① 주력 매칭 개수 → ② 매칭된 고민의 핵심(경계 앞) 계열 수 → ③ 함유(주력은 아님) 매칭 개수 → ④ 선호 성분 포함 개수. 주력 근거가 없는 제품(`main_basis_insufficient`)은 맨 뒤
+  - `match_type`: `main`(주력과 겹침) / `contained`(주력은 아니지만 그 고민 성분이 들어 있음, 주력 매칭 제품이 부족할 때 뒤를 채움) / `none`
 - 주력 고민이 검수되지 않은(`is_concerns_verified=false`) 제품은 기본적으로 제외하고 개수만 `skipped_unverified`로 알려 줌
 
 ```json
@@ -99,8 +102,9 @@
     "id": 3, "product_name": "...", "brand": "...", "category": "크림",
     "main_concerns": ["모공", "미백/톤"], "is_concerns_verified": true,
     "matched_concerns": ["모공"], "match_count": 1, "total_concerns": 2,
+    "match_type": "main", "contained_matched": [], "main_basis_insufficient": false,
     "preferred_hits": ["나이아신아마이드"],
-    "warnings": [{ "ingredient": "...", "limit_cond": "..." }]
+    "warnings": [{ "ingredient": "...", "limit_cond": "...", "kind": "limit" }]
   }],
   "excluded": [{
     "id": 7, "product_name": "...", "...": "...",
