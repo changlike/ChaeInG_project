@@ -120,6 +120,28 @@ def _formula_stats(ingredients: list[dict], tags: dict[str, dict], markers: list
     return {"boundary": boundary, "estimated": estimated, "stats": stats}
 
 
+def contained_concerns(ingredients: list[dict], tags: dict[str, dict]) -> list[str]:
+    """제품에 성분이 들어 있는 고민(위치 무관, 대표든 부가든). 기반 보습제는 모든 제품에 있어 뺌"""
+    present = set()
+    for ing in ingredients:
+        tag = tags.get(ing["name"])
+        if tag and not tag["exclude"]:
+            present.update(tag["all"])
+    return [c for c in ALLOWED_CONCERNS if c in present]
+
+
+def concern_profile(ingredients: list[dict], tags: dict[str, dict], markers: list[str]) -> dict:
+    """추천 정렬에 쓰는 제품의 고민 프로필 (성분 목록 하나 기준, DB에는 제 구분이 없음).
+    core: {고민: 경계 앞 계열(또는 성분) 수}, contained: 성분이 들어 있는 고민 목록"""
+    result = _formula_stats(ingredients, tags, markers)
+    return {
+        "boundary": result["boundary"],
+        "estimated": result["estimated"],
+        "core": {c: len(s["families"]) for c, s in result["stats"].items()},
+        "contained": contained_concerns(ingredients, tags),
+    }
+
+
 def decide_main(
     product_name: str,
     formulas: list[dict],
@@ -156,15 +178,7 @@ def decide_main(
 
     main = sorted(candidates, key=key)[:MAX_MAIN]
 
-    # 함유만 있는 고민: 대표 태그든 부가 태그든 성분이 제품에 있지만 주력은 아닌 고민
-    present = []
-    for ing in all_ings:
-        tag = tags.get(ing["name"])
-        if tag:
-            for c in tag["all"]:
-                if c not in present:
-                    present.append(c)
-    contained = [c for c in ALLOWED_CONCERNS if c in present and c not in main]
+    contained = [c for c in contained_concerns(all_ings, tags) if c not in main]
 
     evidence = {
         c: {

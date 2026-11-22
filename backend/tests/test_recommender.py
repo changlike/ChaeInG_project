@@ -1,6 +1,6 @@
 from app.services.recommender import (
-    recommend, check_gates, find_warnings, split_ingredient_text,
-    REASON_SENSITIVE, REASON_BANNED, REASON_AVOIDED,
+    recommend, check_gates, find_warnings, find_trace_warnings, split_ingredient_text,
+    REASON_SENSITIVE, REASON_BANNED, REASON_AVOIDED, MATCH_MAIN, MATCH_CONTAINED, MATCH_NONE,
 )
 
 IRRITANTS = [
@@ -43,12 +43,27 @@ def test_non_sensitive_user_keeps_irritant_product():
     assert check_gates(p, profile(is_sensitive=False), IRRITANTS, []) == []
 
 
-def test_top_n_irritant_only_counts_in_front_section():
-    names = ["정제수"] * 0 + [f"성분{i}" for i in range(1, 25)] + ["에탄올"]  # 에탄올 25번째
-    p = make_product(1, [], names)
-    assert check_gates(p, profile(is_sensitive=True), IRRITANTS, [], top_n=20) == []
-    p_front = make_product(2, [], ["정제수", "에탄올"])
-    assert check_gates(p_front, profile(is_sensitive=True), IRRITANTS, [], top_n=20)
+def test_top_n_irritant_gates_only_in_front_of_boundary():
+    # 경계 = 처음 나오는 소량 성분(마커) 바로 앞. 알코올류는 경계 앞이면 탈락, 뒤(소량)면 탈락시키지 않음
+    markers = ["페녹시에탄올"]
+    front = make_product(1, [], ["정제수", "에탄올", "페녹시에탄올"])
+    back = make_product(2, [], ["정제수", "페녹시에탄올", "에탄올"])
+    assert check_gates(front, profile(is_sensitive=True), IRRITANTS, [], markers)
+    assert check_gates(back, profile(is_sensitive=True), IRRITANTS, [], markers) == []
+
+
+def test_any_irritant_gates_regardless_of_boundary():
+    markers = ["페녹시에탄올"]
+    p = make_product(1, [], ["정제수", "페녹시에탄올", "향료"])
+    assert check_gates(p, profile(is_sensitive=True), IRRITANTS, [], markers)
+
+
+def test_trace_irritant_is_warning_for_sensitive_user_only():
+    markers = ["페녹시에탄올"]
+    back = make_product(1, [], ["정제수", "페녹시에탄올", "에탄올"])
+    warnings = find_trace_warnings(back, profile(is_sensitive=True), IRRITANTS, markers)
+    assert [w["ingredient"] for w in warnings] == ["에탄올"] and warnings[0]["kind"] == "trace_irritant"
+    assert find_trace_warnings(back, profile(is_sensitive=False), IRRITANTS, markers) == []
 
 
 def test_banned_ingredient_drops_for_everyone():
@@ -73,7 +88,7 @@ def test_split_ingredient_text_ignores_blank_and_spaces():
 def test_limited_ingredient_is_warning_not_gate():
     p = make_product(1, ["건조/보습"], ["정제수", "페녹시에탄올"])
     assert check_gates(p, profile(), [], REGULATED) == []
-    assert find_warnings(p, REGULATED) == [{"ingredient": "페녹시에탄올", "limit_cond": "1%"}]
+    assert find_warnings(p, REGULATED) == [{"ingredient": "페녹시에탄올", "limit_cond": "1%", "kind": "limit"}]
 
 
 # --- 2단계 가산점 + 전체 흐름 ---
@@ -126,3 +141,61 @@ def test_unverified_products_skipped_by_default():
     result = recommend(profile(concerns=["건조/보습"]), products, [], [], include_unverified=True)
     assert [r["id"] for r in result["recommended"]] == [1, 2]
     assert result["recommended"][0]["is_concerns_verified"] is False
+
+
+# --- 2단계 정렬 (주력 매칭 → 핵심 계열 수 → 함유 매칭 → 선호 성분), 근거 부족 ---
+
+def tag(family, *concerns):
+    return {"family": family, "mains": list(concerns), "all": list(concerns), "exclude": False}
+
+
+TAGS = {
+    "알란토인": tag("진정 성분(홍조)", "홍조"),
+    "병풀추출물": tag("병풀", "홍조"),
+    "나이아신아마이드": tag("비타민B·나이아신·판테놀", "미백/톤"),
+}
+MARKERS = ["향료"]
+
+
+def ids(result):
+    return [r["id"] for r in result["recommended"]]
+
+
+def test_core_family_count_breaks_ties_between_main_matches():
+    # 둘 다 홍조가 주력이지만 경계(향료) 앞에 홍조 계열이 둘인 제품이 먼저
+    products = [
+        make_product(1, ["홍조"], ["정제수", "알란토인", "향료", "병풀추출물"]),
+        make_product(2, ["홍조"], ["정제수", "알란토인", "병풀추출물", "향료"]),
+    ]
+    result = recommend(profile(concerns=["홍조"]), products, [], [], tags=TAGS, markers=MARKERS)
+    assert ids(result) == [2, 1]
+
+
+def test_contained_match_fills_after_main_matches():
+    products = [
+        make_product(1, ["건조/보습"], ["정제수", "알란토인"]),   # 주력은 아니지만 홍조 성분 함유
+        make_product(2, ["홍조"], ["정제수", "알란토인"]),        # 주력 매칭
+        make_product(3, ["건조/보습"], ["정제수"]),               # 매칭 없음
+    ]
+    result = recommend(profile(concerns=["홍조"]), products, [], [], tags=TAGS, markers=MARKERS)
+    assert ids(result) == [2, 1, 3]
+    types = {r["id"]: r["match_type"] for r in result["recommended"]}
+    assert types == {2: MATCH_MAIN, 1: MATCH_CONTAINED, 3: MATCH_NONE}
+    assert result["recommended"][1]["contained_matched"] == ["홍조"]
+
+
+def test_main_basis_insufficient_product_goes_last_and_is_flagged():
+    products = [
+        make_product(1, [], ["정제수"]),                         # 검수 결과 주력 없음
+        make_product(2, ["건조/보습"], ["정제수"]),
+    ]
+    result = recommend(profile(concerns=["홍조"]), products, [], [], tags=TAGS, markers=MARKERS)
+    assert ids(result) == [2, 1]
+    assert result["recommended"][1]["main_basis_insufficient"] is True
+    assert result["recommended"][0]["main_basis_insufficient"] is False
+
+
+def test_works_without_tag_tables():
+    products = [make_product(1, ["홍조"], ["정제수"]), make_product(2, [], ["정제수"])]
+    result = recommend(profile(concerns=["홍조"]), products, [], [])
+    assert ids(result) == [1, 2]

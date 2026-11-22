@@ -66,7 +66,8 @@ function Recommend() {
             <h1>맞춤 추천</h1>
             <p className="muted">
                 성분 기반 규칙으로 판단합니다. 민감성·기피 성분이 있는 제품은 먼저 걸러내고,
-                남은 제품을 내 고민과 겹치는 개수가 많은 순으로 보여줘요.
+                남은 제품 중 내 고민이 제품의 주력과 겹치는 순으로 상위 3개를 보여줘요.
+                주력 제품이 부족하면 해당 고민 성분이 들어 있는 제품으로 채워요.
             </p>
 
             <div className="toolbar">
@@ -107,7 +108,9 @@ function Recommend() {
                                     </div>
                                     {r.total_concerns > 0 && (
                                         <span className={r.match_count > 0 ? 'badge' : 'badge badge-dim'}>
-                                            고민 {r.total_concerns}개 중 {r.match_count}개 매칭
+                                            {r.match_type === 'contained'
+                                                ? `주력은 아니지만 ${r.contained_matched.join(', ')} 성분이 들어 있어요`
+                                                : `고민 ${r.total_concerns}개 중 ${r.match_count}개 매칭`}
                                         </span>
                                     )}
                                 </div>
@@ -118,6 +121,7 @@ function Recommend() {
                                             {c}
                                         </span>
                                     ))}
+                                    {r.main_basis_insufficient && <span className="tag tag-warn">주력 근거 부족</span>}
                                     {!r.is_concerns_verified && <span className="tag tag-warn">검수 전 태그</span>}
                                 </div>
 
@@ -126,7 +130,9 @@ function Recommend() {
                                 )}
                                 {r.warnings.map((w) => (
                                     <p key={w.ingredient} className="small warn">
-                                        ⚠ {w.ingredient}: 배합 한도가 있는 성분이에요 {w.limit_cond && `(${w.limit_cond})`}
+                                        {w.kind === 'trace_irritant'
+                                            ? `⚠ ${w.ingredient}: ${w.limit_cond}`
+                                            : `⚠ ${w.ingredient}: 배합 한도가 있는 성분이에요 ${w.limit_cond ? `(${w.limit_cond})` : ''}`}
                                     </p>
                                 ))}
                             </li>

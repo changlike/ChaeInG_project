@@ -15,7 +15,7 @@ from app.models.product import Product, Ingredient, ProductIngredient
 
 # 응답 형식과 스코어링 엔진
 from app.schemas.recommendation import RecommendationResponse
-from app.services.recommender import recommend, load_irritants, load_regulated
+from app.services.recommender import recommend, load_irritants, load_regulated, load_concern_tables
 
 # 이 파일 안의 API들을 하나로 묶어주는 라우터 생성
 router = APIRouter()
@@ -70,7 +70,8 @@ def run_recommendation(
 ) -> dict:
     """프로필 dict로 추천 실행 (API와 챗봇이 같이 쓰는 진입점)"""
     products = load_products_for_scoring(db, category)
-    return recommend(profile, products, load_irritants(), load_regulated(), include_unverified)
+    tags, markers = load_concern_tables()
+    return recommend(profile, products, load_irritants(), load_regulated(), include_unverified, tags, markers)
 
 
 # 추천 API
@@ -80,7 +81,7 @@ def run_recommendation(
 @router.get("", response_model=RecommendationResponse)
 def get_recommendations(
         category: str | None = None,
-        limit: int = 20,
+        limit: int = 3,
         include_unverified: bool = False,
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db),

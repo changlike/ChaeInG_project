@@ -9,10 +9,11 @@ class GateReason(BaseModel):
     detail: str
 
 
-# 배합 한도 성분 경고 하나
+# 성분 경고 하나 (kind: limit 배합 한도 성분 / trace_irritant 민감성에게 소량 들어 있는 자극 성분)
 class LimitWarning(BaseModel):
     ingredient: str
     limit_cond: str = ""
+    kind: str = "limit"
 
 
 # 추천/탈락 제품 공통 정보
@@ -30,6 +31,11 @@ class RecommendedProduct(RecommendedProductBase):
     matched_concerns: list[str]
     match_count: int
     total_concerns: int
+    # main: 주력 고민과 겹침 / contained: 주력은 아니지만 그 고민의 성분이 들어 있음 / none
+    match_type: str = "none"
+    contained_matched: list[str] = []
+    # 주력 근거가 부족한 제품 (순위는 맨 뒤)
+    main_basis_insufficient: bool = False
     preferred_hits: list[str] = []
     warnings: list[LimitWarning] = []
 
