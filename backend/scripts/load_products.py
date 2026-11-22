@@ -9,7 +9,7 @@ import csv
 from pathlib import Path
 
 from app.services.ingredient_parser import (
-    MAX_NAME_LENGTH, parse_ingredients, clean_source_url, review_reason,
+    MAX_NAME_LENGTH, parse_formulas, parse_ingredients, clean_source_url, review_reason,
 )
 
 DEFAULT_CSV = Path(__file__).resolve().parents[2] / "data" / "ChaeInG_data - 통합.csv"
@@ -67,6 +67,8 @@ def read_rows(csv_path: Path) -> tuple[list[dict], list[str]]:
                 # CSV의 '확인' 컬럼은 데이터 확인 표시라 사용하지 않음
                 "main_concerns": row.get("main_concern") or None,
                 "ingredients": ingredients,
+                # 2제형 제품(예: 듀얼 크림)은 제마다 따로 판정해야 해서 제별 성분 목록도 함께 둠
+                "formulas": parse_formulas(raw_ingredients),
             })
     return products, warnings
 
