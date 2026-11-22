@@ -1,6 +1,7 @@
 from app.services.ingredient_parser import (
     clean_source_url,
     extract_amount,
+    normalize_name,
     parse_ingredients,
     review_reason,
     split_ingredients,
@@ -54,6 +55,40 @@ def test_parse_ingredients_removes_asterisk_and_duplicates():
     result = parse_ingredients("정제수, *알로에베라잎추출물, 알로에베라잎추출물, 글리세린")
     assert [r["name"] for r in result] == ["정제수", "알로에베라잎추출물", "글리세린"]
     assert [r["position"] for r in result] == [1, 2, 3]
+
+
+def test_extract_amount_without_parentheses():
+    assert extract_amount("판테놀 50,000ppm") == ("판테놀", "50,000ppm")
+
+
+def test_extract_amount_ignores_percent_after_comma_inside_parentheses():
+    assert extract_amount("징크피씨에이(징크로서,1%)") == ("징크피씨에이(징크로서,1%)", None)
+
+
+def test_normalize_name_removes_spaces():
+    assert normalize_name("소듐하이알루로 네이트", aliases={}) == "소듐하이알루로네이트"
+
+
+def test_normalize_name_applies_alias_and_drop():
+    aliases = {"향료료": "향료", "아벤느": ""}
+    assert normalize_name("향료료", aliases) == "향료"
+    assert normalize_name("아벤느", aliases) == ""
+
+
+def test_parse_ingredients_normalizes_and_drops_empty_alias():
+    result = parse_ingredients("정제수, 소듐하이 알루로네이트, 아벤느, 향료료", aliases={"아벤느": "", "향료료": "향료"})
+    assert [r["name"] for r in result] == ["정제수", "소듐하이알루로네이트", "향료"]
+
+
+def test_parse_ingredients_splits_set_markers_and_label():
+    result = parse_ingredients("전성분 정제수, 글리세린 (2제) 정제수, 판테놀", aliases={})
+    assert [r["name"] for r in result] == ["정제수", "글리세린", "판테놀"]
+
+
+def test_parse_ingredients_splits_items_merged_after_parentheses():
+    result = parse_ingredients("정제수, 하이드롤라이즈드하이알루로닉애씨드(0.1ppm) 소듐하이알루로네이트", aliases={})
+    assert [r["name"] for r in result] == ["정제수", "하이드롤라이즈드하이알루로닉애씨드", "소듐하이알루로네이트"]
+    assert result[1]["amount_note"] == "0.1ppm"
 
 
 def test_review_reason():
