@@ -91,7 +91,7 @@ def test_limited_ingredient_is_warning_not_gate():
     assert find_warnings(p, REGULATED) == [{"ingredient": "페녹시에탄올", "limit_cond": "1%", "kind": "limit"}]
 
 
-# --- 2단계 가산점 + 전체 흐름 ---
+# --- 2단계 정렬 + 전체 흐름 ---
 
 def test_sorted_by_match_count_not_sum():
     products = [

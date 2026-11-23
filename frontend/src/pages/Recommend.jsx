@@ -1,5 +1,5 @@
 // 추천 결과 페이지
-// 내 피부 프로필로 스코어링 엔진을 실행하고, 추천 이유(고민 매칭)와 탈락 이유(게이트)를 함께 보여줌
+// 내 피부 프로필로 규칙 엔진을 실행하고, 추천 이유(고민 매칭)와 탈락 이유(게이트)를 함께 보여줌
 // 점수는 합산하지 않음: 게이트 통과 여부 → 고민 매칭 개수 → 경고 표시 순서
 import {useEffect, useState} from 'react';
 import {Link, useNavigate} from 'react-router-dom';

@@ -13,7 +13,7 @@ from app.models.user import User
 from app.models.profile import SkinProfile
 from app.models.product import Product, Ingredient, ProductIngredient
 
-# 응답 형식과 스코어링 엔진
+# 응답 형식과 규칙 엔진(게이트 + 정렬)
 from app.schemas.recommendation import RecommendationResponse
 from app.services.recommender import recommend, load_irritants, load_regulated, load_concern_tables
 
@@ -22,7 +22,7 @@ router = APIRouter()
 
 
 def load_products_for_scoring(db: Session, category: str | None = None) -> list[dict]:
-    """DB의 제품 + 성분(순번 포함)을 스코어링 엔진이 받는 dict 형태로 변환"""
+    """DB의 제품 + 성분(순번 포함)을 규칙 엔진이 받는 dict 형태로 변환"""
     query = db.query(Product)
     if category:
         query = query.filter(Product.category == category)
@@ -75,7 +75,7 @@ def run_recommendation(
 
 
 # 추천 API
-# 로그인한 유저의 피부 프로필로 스코어링 엔진을 실행
+# 로그인한 유저의 피부 프로필로 규칙 엔진을 실행
 # category: 카테고리 한정 (선택), limit: 추천 목록 최대 개수
 # include_unverified: 주력 고민 검수 전 제품도 포함 (개발·데모용, 결과에 검수 여부가 표시됨)
 @router.get("", response_model=RecommendationResponse)
