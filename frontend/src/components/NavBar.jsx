@@ -1,17 +1,22 @@
 // 상단 공통 네비게이션 (모든 페이지에서 같은 메뉴 + 로그인/로그아웃)
 import {NavLink, useNavigate, useLocation} from 'react-router-dom';
 import {getToken, clearToken} from '../auth';
+import {clearChats} from '../chatStore';
 
 function NavBar() {
     const navigate = useNavigate();
     // 페이지가 바뀔 때마다 다시 그려서 로그인 상태를 최신으로 반영
-    useLocation();
+    const {pathname} = useLocation();
     const loggedIn = Boolean(getToken());
 
     const handleLogout = () => {
         clearToken();
+        clearChats();
         navigate('/login');
     };
+
+    // 채팅 화면은 자기 사이드바가 있어서 상단 메뉴를 숨김
+    if (pathname === '/chat') return null;
 
     return (
         <nav className="navbar">

@@ -75,10 +75,18 @@ def split_ingredient_text(text: str | None) -> list[str]:
     return [t.replace(" ", "") for t in (text or "").split(",") if t.strip()]
 
 
+# 이름은 겹치지만 다른 물질이라 같은 단어로 거르면 안 되는 경우 (키워드 → 제외할 성분명 조각)
+# 예: "에탄올"을 피하려는 사람에게 방부제 "페녹시에탄올"까지 탈락시키면 안 됨
+KEYWORD_NOT_MATCH = {"에탄올": ["페녹시에탄올"]}
+
+
 def _matches_keyword(ingredient_name: str, keyword: str) -> bool:
     # 사용자가 적은 단어가 성분명에 포함되면 일치로 봄 (예: "알코올" → "변성알코올")
     # 기피 성분은 놓치는 것보다 넓게 거르는 편이 안전하다고 판단. 대신 어떤 성분이 걸렸는지 항상 함께 보여줌
-    return keyword in ingredient_name.replace(" ", "")
+    name = ingredient_name.replace(" ", "")
+    for other in KEYWORD_NOT_MATCH.get(keyword, []):
+        name = name.replace(other, "")
+    return keyword in name
 
 
 def check_gates(

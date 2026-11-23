@@ -15,6 +15,16 @@ class Explanation(BaseModel):
     text: str
 
 
+class EvidenceItem(BaseModel):
+    ingredient: str
+    concern: str
+
+
+class ProductEvidence(BaseModel):
+    product_id: int
+    items: list[EvidenceItem] = []
+
+
 class ChatResponse(BaseModel):
     understood: dict            # 검증된 조건 (다음 요청의 previous_conditions로 사용)
     confirmation: str           # "이렇게 이해했어요 — ..." (코드가 만든 확인 문구)
@@ -22,5 +32,6 @@ class ChatResponse(BaseModel):
     needs_input: bool = False
     recommendations: list[RecommendedProduct] = []
     explanations: list[Explanation] = []
+    evidence: list[ProductEvidence] = []   # 카드별 근거 성분 (성분 태그표에서 가져온 값)
     excluded: list[ExcludedProduct] = []
     notices: list[str] = []

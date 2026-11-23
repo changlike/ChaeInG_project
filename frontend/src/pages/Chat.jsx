@@ -1,11 +1,15 @@
 // 채팅 화면 (메인)
+// 왼쪽 사이드바(새 상담·프로필·대화 목록) + 가운데 대화 + 아래 입력창 구성
 // 사용자가 문장으로 요청하면 서버가 해석 → 규칙 엔진으로 상위 3개를 골라 돌려줌
-// 화면은 서버가 준 정형 데이터(확인 문구, 카드, 탈락 사유)만 그리고, 추천 판단은 하지 않음
+// 화면은 서버가 준 정형 데이터(확인 문구, 카드, 근거, 탈락 사유)만 그리고, 추천 판단은 하지 않음
 import {useEffect, useRef, useState} from 'react';
-import {useNavigate} from 'react-router-dom';
+import {Link, useNavigate} from 'react-router-dom';
 import {sendChat} from '../api/chat';
+import {getProfile} from '../api/profile';
 import ProductCard from '../components/ProductCard';
+import ChatSidebar, {Logo} from '../components/ChatSidebar';
 import {getToken, clearToken} from '../auth';
+import {createChat, loadChats, saveChats} from '../chatStore';
 
 // 탈락 사유 종류별 표시 문구 (백엔드 recommender.py의 REASON_* 값과 같아야 함)
 const REASON_LABELS = {
@@ -20,41 +24,68 @@ const EXAMPLES = [
     '여드름 트러블에 좋은 세럼',
 ];
 
-const WELCOME = {
-    role: 'bot',
-    text: '안녕하세요! 피부 고민과 피하고 싶은 성분을 말해 주세요. 성분 기반 규칙으로 상위 3개를 골라 근거와 함께 보여드려요.',
-};
-
 function Chat() {
     const navigate = useNavigate();
-    const [messages, setMessages] = useState([WELCOME]);
+    const [chats, setChats] = useState(loadChats);
+    const [activeId, setActiveId] = useState(null);   // null = 아직 시작 전인 새 상담
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    // 직전 응답의 understood: 다음 요청에 그대로 돌려보내 후속 요청("그럼 크림으로")을 이어감
-    const [understood, setUnderstood] = useState(null);
+    const [profile, setProfile] = useState(null);
+    const [sideOpen, setSideOpen] = useState(false);  // 좁은 화면에서만 쓰는 사이드바 열림 상태
     const bottomRef = useRef(null);
+
+    const active = chats.find((c) => c.id === activeId) || null;
+    const messages = active ? active.messages : [];
+
+    useEffect(() => {
+        getProfile(getToken()).then(setProfile).catch(() => setProfile(null));
+    }, []);
+
+    useEffect(() => {
+        saveChats(chats);
+    }, [chats]);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({behavior: 'smooth'});
-    }, [messages, loading]);
+    }, [messages.length, loading]);
+
+    // 대화 하나를 고쳐서 목록 맨 앞(최근)으로 올림
+    const updateChat = (id, change) => {
+        setChats((prev) => {
+            const target = prev.find((c) => c.id === id);
+            if (!target) return prev;
+            return [{...change(target), updatedAt: Date.now()}, ...prev.filter((c) => c.id !== id)];
+        });
+    };
 
     const send = async (text) => {
         const message = text.trim();
         if (!message || loading) return;
         setInput('');
-        setMessages((prev) => [...prev, {role: 'user', text: message}]);
+
+        // 새 상담이면 이 메시지로 대화를 만듦 (제목 = 첫 메시지 앞부분)
+        let id = activeId;
+        let previous = active ? active.understood : null;
+        if (!active) {
+            const chat = {...createChat(), title: message.length > 24 ? message.slice(0, 24) + '…' : message};
+            id = chat.id;
+            previous = null;
+            setChats((prev) => [chat, ...prev]);
+            setActiveId(id);
+        }
+        updateChat(id, (c) => ({...c, messages: [...c.messages, {role: 'user', text: message}]}));
+
         setLoading(true);
         try {
-            const data = await sendChat(getToken(), message, understood);
-            setUnderstood(data.understood);
-            setMessages((prev) => [...prev, {role: 'bot', data}]);
+            const data = await sendChat(getToken(), message, previous);
+            updateChat(id, (c) => ({...c, understood: data.understood, messages: [...c.messages, {role: 'bot', data}]}));
         } catch (e) {
             if (e.status === 401 || e.status === 403) {
                 clearToken();
                 navigate('/login', {state: {from: '/chat'}});
                 return;
             }
-            setMessages((prev) => [...prev, {role: 'bot', text: e.message}]);
+            updateChat(id, (c) => ({...c, messages: [...c.messages, {role: 'bot', text: e.message}]}));
         } finally {
             setLoading(false);
         }
@@ -65,66 +96,138 @@ function Chat() {
         send(input);
     };
 
-    const reset = () => {
-        setMessages([WELCOME]);
-        setUnderstood(null);
+    // Enter = 보내기, Shift+Enter = 줄바꿈 (한글 조합 중 Enter는 무시)
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+            e.preventDefault();
+            send(input);
+        }
     };
 
+    const startNew = () => {
+        setActiveId(null);
+        setSideOpen(false);
+    };
+
+    const selectChat = (id) => {
+        setActiveId(id);
+        setSideOpen(false);
+    };
+
+    const u = active?.understood;
+
     return (
-        <div className="page chat-page">
-            <div className="chat-header">
-                <h1>ChaeInG 채팅</h1>
-                <button className="link-button" onClick={reset}>새 대화</button>
-            </div>
+        <div className={sideOpen ? 'chat-app side-open' : 'chat-app'}>
+            <ChatSidebar
+                chats={chats}
+                activeId={activeId}
+                profile={profile}
+                onNew={startNew}
+                onSelect={selectChat}
+                onClose={() => setSideOpen(false)}
+            />
+            {sideOpen && <div className="side-backdrop" onClick={() => setSideOpen(false)}/>}
 
-            <div className="chat-log">
-                {messages.map((m, i) => (
-                    <div key={i} className={m.role === 'user' ? 'chat-row chat-user' : 'chat-row chat-bot'}>
-                        {m.role === 'user' && <div className="bubble bubble-user">{m.text}</div>}
-                        {m.role === 'bot' && m.text && <div className="bubble">{m.text}</div>}
-                        {m.role === 'bot' && m.data && <BotReply data={m.data}/>}
+            <section className="chat-main">
+                <header className="chat-top">
+                    <button className="icon-btn menu-btn" onClick={() => setSideOpen(true)} aria-label="메뉴 열기">☰</button>
+                    <div className="chat-top-title">
+                        <b>{active ? active.title : '새 상담'}</b>
+                        {profile && (
+                            <span className="muted small">
+                                {[profile.skin_type, profile.is_sensitive ? '민감성' : null].filter(Boolean).join(' · ')} 기준
+                            </span>
+                        )}
                     </div>
-                ))}
-                {loading && <div className="chat-row chat-bot"><div className="bubble muted">생각하는 중...</div></div>}
-                <div ref={bottomRef}/>
-            </div>
+                    <Link to="/favorites" className="top-link">♡<span className="top-link-label"> 찜한 제품</span></Link>
+                </header>
 
-            {messages.length === 1 && (
-                <div className="chat-examples">
-                    {EXAMPLES.map((ex) => (
-                        <button key={ex} className="chip" onClick={() => send(ex)}>{ex}</button>
-                    ))}
+                <div className="chat-scroll">
+                    <div className="chat-col">
+                        {messages.length === 0 && (
+                            <div className="chat-welcome">
+                                <Logo size={48}/>
+                                <h1>어떤 피부 고민이 있으세요?</h1>
+                                <p className="muted">
+                                    고민과 피하고 싶은 성분을 말해 주세요. 성분 기반 규칙으로 상위 3개를 골라 근거와 함께 보여드려요.
+                                </p>
+                                <div className="chat-examples">
+                                    {EXAMPLES.map((ex) => (
+                                        <button key={ex} className="chip" onClick={() => send(ex)}>{ex}</button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {messages.map((m, i) => (
+                            <div key={i} className={m.role === 'user' ? 'msg msg-user' : 'msg msg-bot'}>
+                                {m.role === 'user' && <div className="bubble-user">{m.text}</div>}
+                                {m.role === 'bot' && (
+                                    <>
+                                        <span className="msg-avatar"><Logo size={30}/></span>
+                                        <div className="msg-body">
+                                            {m.text && <p>{m.text}</p>}
+                                            {m.data && <BotReply data={m.data}/>}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        ))}
+
+                        {loading && (
+                            <div className="msg msg-bot">
+                                <span className="msg-avatar"><Logo size={30}/></span>
+                                <div className="msg-body muted">생각하는 중...</div>
+                            </div>
+                        )}
+                        <div ref={bottomRef}/>
+                    </div>
                 </div>
-            )}
 
-            <form className="chat-form" onSubmit={handleSubmit}>
-                <input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="예: 잡티에 좋은 토너 추천해줘, 알코올은 빼고"
-                    maxLength={500}
-                />
-                <button type="submit" disabled={loading || !input.trim()}>보내기</button>
-            </form>
+                <form className="chat-input" onSubmit={handleSubmit}>
+                    <div className="chat-input-box">
+                        <textarea
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder="피부 고민이나 피하고 싶은 성분을 말해 주세요"
+                            rows={2}
+                            maxLength={500}
+                        />
+                        <button type="submit" className="send-btn" disabled={loading || !input.trim()} aria-label="보내기">↑</button>
+                    </div>
+                    <p className="chat-disclaimer">
+                        추천은 성분 정보와 규칙으로 정한 참고용이며, 피부 반응은 사람마다 다를 수 있습니다.
+                        {u && u.avoided.length > 0 && ' 제외 성분은 대화 중 계속 유지돼요. 바꾸려면 새 상담을 시작하세요.'}
+                    </p>
+                </form>
+            </section>
         </div>
     );
 }
 
-// 봇 응답 한 건: 확인 문구 → 안내 → 카드 3개(설명 포함) → 알림 → 걸러낸 제품
+// 봇 응답 한 건: 확인 문구 → 안내 → 카드 3개(근거 보기 포함) → 걸러낸 제품
 function BotReply({data}) {
     const [showExcluded, setShowExcluded] = useState(false);
     const explanationOf = (id) => data.explanations.find((x) => x.product_id === id)?.text;
+    const evidenceOf = (id) => data.evidence.find((x) => x.product_id === id)?.items || [];
 
     return (
         <div className="bot-reply">
-            {data.confirmation && <div className="bubble confirm">{data.confirmation}</div>}
-            {data.reply && <div className="bubble">{data.reply}</div>}
+            {data.confirmation && <p className="confirm-text">{data.confirmation}</p>}
+            {data.reply && <p>{data.reply}</p>}
             {data.notices.map((n, i) => <p key={i} className="notice">{n}</p>)}
 
             {data.recommendations.length > 0 && (
-                <ul className="card-list">
-                    {data.recommendations.map((r) => (
-                        <ProductCard key={r.id} item={r} explanation={explanationOf(r.id)}/>
+                <ul className="pcard-grid">
+                    {data.recommendations.map((r, i) => (
+                        <ProductCard
+                            key={r.id}
+                            item={r}
+                            rank={i + 1}
+                            evidence={evidenceOf(r.id)}
+                            explanation={explanationOf(r.id)}
+                        />
                     ))}
                 </ul>
             )}

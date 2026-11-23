@@ -11,7 +11,10 @@ from app.services.llm.interpreter import (
 )
 
 TOP_N = 3
-OUT_OF_SCOPE_REPLY = "저는 스킨케어 제품 추천만 도와드릴 수 있어요. 예: \"잡티에 좋은 토너 추천해줘, 알코올은 빼고\""
+OUT_OF_SCOPE_REPLY = (
+    "피부 고민(건조, 트러블, 홍조, 잡티, 모공, 주름)과 피하고 싶은 성분으로 토너·세럼·로션·크림·미스트 중에서 추천해 드려요. "
+    "예: \"잡티에 좋은 토너 추천해줘, 알코올은 빼고\" (성분 설명, 가격, 비건 같은 조건은 아직 지원하지 않아요)"
+)
 NEED_CONCERN_REPLY = "어떤 피부 고민이 있는지 알려 주세요. 예: 건조함, 트러블, 홍조, 잡티, 모공, 주름"
 
 EMPTY_CONDITIONS = {"intent": "recommend", "concerns": [], "category": None, "avoided": [], "preferred": []}
@@ -33,6 +36,46 @@ def template_explanation(item: dict) -> str:
     if item["warnings"]:
         text += " 주의할 성분이 있으니 아래 경고를 확인해 주세요."
     return text
+
+
+MAX_EVIDENCE = 4          # 카드 하나에 보여줄 근거 성분 최대 개수
+EVIDENCE_PER_CONCERN = 2  # 고민 하나당 최대 개수
+
+
+def build_evidence(db: Session, top: list[dict]) -> list[dict]:
+    """추천 카드의 '근거 성분': 요청한 고민 중 이 제품에서 맞은 고민과, 그 고민으로 태깅된 성분(성분표 순서대로 최대 4개)
+    성분 태그표(출처가 붙은 표)에서 가져온 값이라 LLM이 지어낸 말이 아님"""
+    from app.models.product import Ingredient, ProductIngredient
+    from app.services.recommender import load_concern_tables
+
+    if not top:
+        return []
+    tags, _ = load_concern_tables()
+    rows = (
+        db.query(ProductIngredient.product_id, ProductIngredient.position, Ingredient.ingredient_name)
+        .join(Ingredient, Ingredient.id == ProductIngredient.ingredient_id)
+        .filter(ProductIngredient.product_id.in_([r["id"] for r in top]))
+        .order_by(ProductIngredient.product_id, ProductIngredient.position)
+        .all()
+    )
+    by_product: dict[int, list[str]] = {}
+    for product_id, _position, name in rows:
+        by_product.setdefault(product_id, []).append(name)
+
+    result = []
+    for r in top:
+        concerns = r["matched_concerns"] + r["contained_matched"]
+        items = []
+        # 고민마다 성분표 순서대로 앞의 몇 개씩 (보습 성분이 많은 제품에서 다른 고민의 근거가 가려지지 않도록)
+        for concern in concerns:
+            count = 0
+            for name in by_product.get(r["id"], []):
+                tag = tags.get(name)
+                if tag and not tag["exclude"] and concern in tag["all"] and count < EVIDENCE_PER_CONCERN:
+                    items.append({"ingredient": name, "concern": concern})
+                    count += 1
+        result.append({"product_id": r["id"], "items": items[:MAX_EVIDENCE]})
+    return result
 
 
 def _no_main_notice(db, engine_profile: dict, category: str | None, run_recommendation) -> str:
@@ -64,7 +107,7 @@ def run_chat(
         conditions = sanitize_previous(previous) or dict(EMPTY_CONDITIONS)
 
     base = {"understood": conditions, "confirmation": "", "reply": None, "needs_input": False,
-            "recommendations": [], "explanations": [], "excluded": [], "notices": notices}
+            "recommendations": [], "explanations": [], "evidence": [], "excluded": [], "notices": notices}
 
     if conditions["intent"] == INTENT_OUT_OF_SCOPE:
         return {**base, "reply": OUT_OF_SCOPE_REPLY}
@@ -74,7 +117,9 @@ def run_chat(
     if not engine_profile["concerns"]:
         return {**base, "reply": NEED_CONCERN_REPLY, "needs_input": True}
 
-    result = run_recommendation(db, engine_profile, conditions["category"])
+    # 게이트에는 같은 물질의 다른 표기까지 넣은 목록을 씀 (예: 알코올 → 에탄올도 거름)
+    gate_profile = {**engine_profile, "avoided_ingredients": engine_profile["avoided_for_gate"]}
+    result = run_recommendation(db, gate_profile, conditions["category"])
     top = result["recommended"][:TOP_N]
     if top and not any(r["match_type"] == "main" for r in top):
         base["notices"].append(_no_main_notice(db, engine_profile, conditions["category"], run_recommendation))
@@ -82,6 +127,7 @@ def run_chat(
         **base,
         "recommendations": top,
         "explanations": [{"product_id": r["id"], "text": template_explanation(r)} for r in top],
+        "evidence": build_evidence(db, top),
         "excluded": result["excluded"],
         "reply": None if top else "조건에 맞는 제품이 없어요. 제외 성분이나 카테고리를 줄여 보세요.",
     }
