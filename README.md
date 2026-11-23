@@ -16,11 +16,11 @@
 
 | 단계 | 내용 |
 |---|---|
-| **v1 (진행 중)** | 올리브영 수기 수집 약 100개(5개 카테고리 × 20개)를 추천 범위로, 프로필 기반 추천 상위 3개와 근거 제시 |
-| v1.5 | LLM 연동: 자연어 요청("잡티에 좋은데 00 빼고") 해석, 추천 결과 설명 생성. **채팅형 메인 화면**(결과는 정형 카드 + 설명 문장) |
+| **v1 (완료, 2026-11)** | 올리브영 수기 수집 100개(5개 카테고리 × 20개)를 추천 범위로, 프로필 기반 추천 상위 3개와 근거 제시. **채팅형 메인 화면**: 자연어 요청("잡티에 좋은데 00 빼고")을 LLM이 해석하고 규칙 엔진이 추천, 결과는 정형 카드 |
+| v1.5 (예정) | LLM이 쓰는 설명 문장(현재는 템플릿), 해석 정확도 평가 20~30개, 대화 기억 확장 |
 | 이후 | 데이터 확대, 공공데이터 기반 성분 사전·RAG, 색조 등 카테고리 확장 |
 
-- 개발 기간: 2026-07-13 ~ (진행 중)
+- 개발 기간: 2026-07-13 ~ 2026-11 (v1 완료, 이후 유지보수)
 - 개발 방식: 설계(요구사항 · 스코어링 로직 · DB)는 직접 확정하고, 구현은 AI(Claude Code)와 협업하여 리뷰하며 진행
 
 ---
@@ -42,8 +42,8 @@
 | 3 | 즐겨찾기 (찜하기 / 목록 / 취소) | 완료 |
 | 4 | 화장품 검색 (제품명 / 브랜드 / 카테고리) | 완료 |
 | 5 | 성분 검색 (성분명 검색 + 해당 성분이 든 제품 역조회) | 완료 (성분 효능·주의사항 설명 데이터는 미확보) |
-| 6 | 맞춤 추천 (Rule-Based 스코어링 엔진 + 추천 화면) | 엔진·화면 완료. 제품 주력 고민은 핵심 성분 규칙 재정비 후 재생성 예정 |
-| 7 | LLM 연동 (자연어 요청 해석, 추천 결과 설명, 챗봇/에이전트 구조) | 방향 확정, 구현 예정 |
+| 6 | 맞춤 추천 (Rule-Based 엔진 + 프로필 추천 화면) | 완료. 제품 100개 주력 고민 검수·반영 완료 |
+| 7 | 채팅형 추천 (자연어 요청 해석 → 규칙 추천 → 상위 3개 카드, 후속 요청 이어받기) | 완료 (MVP). 설명 문장은 템플릿, LLM 설명·평가는 v1.5 |
 
 ### 피부 프로필 항목
 
@@ -60,9 +60,19 @@
 2. **가산점** — 사용자의 피부 고민과 제품의 "주력 고민" 태그가 겹치는 개수 표시 (예: "고민 3개 중 2개 매칭") 후 매칭 수 순 정렬. 선호 성분은 점수에 더하지 않고 동점일 때 순서만 정함
 3. **경고 문구** — 배합 한도가 있는 성분 포함 시 참고용 경고만 표시 (점수 무관)
 
-제품의 "주력 고민"은 **성분 태그표 + 제품별 경계 + 제품명 신호 규칙**(`main_concerns.py`, [설계](docs/core-ingredient-rule.md))으로 초안을 만들고 사람이 검수한 값만 추천에 씁니다. 성분표에서 소량 성분이 처음 나오는 자리를 제품별 "경계"로 삼아 경계 앞 성분만 주력 판정에 쓰고, 같은 계열 성분(예: 히알루론산 변형 10종)은 1회만 셉니다. 추천은 주력 매칭 개수 순으로 정렬하고 상위 3개를 보여주며, 주력 매칭 제품이 부족하면 해당 고민 성분이 든 제품으로 채웁니다.
+제품의 "주력 고민"은 **제품명을 웹에서 검색해 브랜드가 내세우는 효능을 6개 고민으로 분류**하고 사람이 확인한 값(`data/search_concerns.csv`)을 기준으로 합니다. 처음에는 성분 태그표와 제품별 경계(소량 성분이 처음 나오는 자리) 규칙으로 판정했는데([설계](docs/core-ingredient-rule.md), `main_concerns.py`), 성분만으로는 브랜드 효능과 어긋나는 경우가 있어(예: 트러블 전용 세럼이 홍조로 분류) 100개를 검색으로 다시 분류해 비교했습니다. 성분은 기피 성분 거르기와 근거 설명에 씁니다. 추천은 주력 매칭 개수 순으로 정렬하고 상위 3개를 보여주며, 주력 매칭 제품이 부족하면 해당 고민 성분이 든 제품으로 채웁니다.
 
-최종적으로는 정렬된 결과 중 **상위 3개**를 근거와 함께 제시합니다. LLM 연동은 추천 요청(스코어링 엔진 호출 후 설명 생성)을 우선하고, 성분 Q&A(RAG)는 공공데이터 성분 사전을 갖춘 뒤로 미룹니다.
+최종적으로는 정렬된 결과 중 **상위 3개**를 근거와 함께 제시합니다.
+
+### 채팅형 추천 흐름 (`POST /api/chat`)
+
+1. **해석 (LLM)**: 문장을 `{고민, 카테고리, 기피·선호 성분}` 구조로 바꿉니다 (OpenAI 구조화 출력).
+2. **검증 (코드)**: 허용된 고민 6개·카테고리 5개만 통과, 성분명 표기를 통일합니다(예: "알콜" → "알코올"). 직전 조건도 매번 다시 검증합니다.
+3. **병합 (코드)**: 고민은 메시지 우선, 기피 성분은 프로필과 합집합(후속 요청에서도 줄지 않음), 민감성은 프로필 값 고정.
+4. **추천 (규칙 엔진)**: 게이트 → 주력 매칭 정렬 → 상위 3개. LLM은 관여하지 않습니다.
+5. **응답**: 이해한 조건 확인 문구와 설명은 코드 템플릿, 카드는 정형 데이터. LLM 호출이 실패하거나 키가 없으면 저장된 프로필로 추천합니다.
+
+성분 Q&A(RAG)는 공공데이터 성분 사전을 갖춘 뒤로 미룹니다.
 
 ## 설계 의사결정
 
@@ -84,8 +94,8 @@
 | Frontend | React 19, React Router 7, Vite |
 | Backend | Python, FastAPI, SQLAlchemy, Pydantic |
 | Auth | JWT (python-jose), bcrypt (passlib) |
-| Database | MySQL 8 (Docker, PyMySQL) |
-| LLM (예정) | LLM API (구성 방식은 구현 시 확정) |
+| Database | SQLite (로컬 기본, `DATABASE_URL`), MySQL 8 (Docker, PyMySQL)도 지원 |
+| LLM | OpenAI Chat Completions (구조화 출력, httpx 직접 호출, 호출부는 `services/llm/client.py` 한 파일) |
 | 버전 관리 | Git, GitHub |
 
 ## 프로젝트 구조
@@ -94,11 +104,12 @@
 ChaeInG_project/
 ├─ backend/
 │  ├─ app/
-│  │  ├─ api/        # 라우터 (auth, profile, product, favorite, ingredient, recommendation)
+│  │  ├─ api/        # 라우터 (auth, profile, product, favorite, ingredient, recommendation, chat)
 │  │  ├─ core/       # DB 연결, 인증 유틸
 │  │  ├─ models/     # SQLAlchemy 모델
 │  │  ├─ schemas/    # Pydantic 스키마
-│  │  ├─ services/   # 성분 파서, 주력 고민 판정(main_concerns), 추천 엔진(recommender)
+│  │  ├─ services/   # 성분 파서, 주력 고민 판정(main_concerns), 추천 엔진(recommender),
+│  │  │              # 챗봇(chat), LLM(llm/: client 호출부, interpreter 해석·검증·병합)
 │  │  └─ main.py
 │  ├─ scripts/     # CSV 적재, 고민 초안 생성, 검수값 반영
 │  ├─ tests/      # pytest (엔진 단위 테스트 + SQLite API 테스트)
@@ -106,8 +117,8 @@ ChaeInG_project/
 ├─ frontend/
 │  └─ src/
 │     ├─ api/        # 백엔드 호출 함수
-│     ├─ components/ # NavBar, RequireAuth(인증 가드), Input
-│     └─ pages/      # Login, Signup, Profile, Recommend, Products, Favorites, Ingredients
+│     ├─ components/ # NavBar, RequireAuth(인증 가드), Input, ProductCard(추천 카드)
+│     └─ pages/      # Chat(메인), Login, Signup, Profile, Recommend, Products, Favorites, Ingredients
 ├─ data/             # 제품/성분 CSV, 성분→고민 사전, 자극 성분 목록 (.gitignore, 저장소에 포함되지 않음)
 └─ docs/             # prd, api-spec, erd, user-flow, design-system, daily-log
 ```
@@ -122,53 +133,53 @@ ChaeInG_project/
 | `/api/favorites` | 즐겨찾기 |
 | `/api/ingredients` | 성분 검색 / 성분별 제품 조회 |
 | `/api/recommendations` | 내 프로필 기반 추천 (게이트 → 고민 매칭 → 경고) |
+| `/api/chat` | 문장 요청 해석 → 규칙 추천 → 상위 3개 카드 (로그인 필요) |
 
 서버 실행 후 `http://localhost:8000/docs` (Swagger UI)에서 상세 명세를 확인할 수 있습니다. 설계 문서는 [`docs/api-spec.md`](docs/api-spec.md)를 참고하세요.
 
 ## 실행 방법
 
-### Database (Docker)
+### Backend (SQLite, 기본)
 
-```bash
-# backend/.env 를 먼저 준비 (backend/.env.example 참고, DB_USER=root)
-docker compose --env-file backend/.env up -d
-```
+`backend/.env`에 아래 값을 설정합니다. (`.env`는 저장소에 올라가지 않습니다)
 
-### Backend
+| 키 | 설명 |
+|---|---|
+| `DATABASE_URL` | 예: `sqlite:///C:/ChaeInG_project/backend/chaeing.db` (지정하면 `DB_*` 값은 필요 없음) |
+| `SECRET_KEY` | JWT 서명용 비밀 열쇠 (필수) |
+| `OPENAI_API_KEY` | 채팅 요청 해석용 키 (선택, 없으면 저장된 프로필로 추천) |
+| `OPENAI_MODEL` | 선택, 기본 `gpt-4o-mini` |
 
 ```bash
 cd backend
 pip install -r requirements.txt
-# .env 에 DB 접속 정보 / JWT 시크릿 설정 필요 (.env.example 참고)
 
-alembic upgrade head                      # 테이블 생성 (마이그레이션 적용)
+# 테이블 생성 (SQLite는 모델 정의로 만듦)
+python -c "from app.core.database import Base, engine; from app.models import user, profile, product, favorite; Base.metadata.create_all(engine)"
 python -m scripts.load_products --dry-run # CSV 파싱 결과만 확인
 python -m scripts.load_products           # 제품/성분 데이터 DB 적재
-
-python -m scripts.tag_concerns            # 주력 고민 초안 CSV 생성 (data/main_concerns_draft.csv, 핵심 성분 규칙 개편 후 재생성 예정)
-python -m scripts.apply_concerns          # 검수 완료(reviewed 표시) 행만 DB 반영
+python -m scripts.apply_concerns          # 검수 완료(reviewed 표시) 행의 주력 고민을 DB 반영
 
 python -m uvicorn app.main:app --reload
+```
+
+주력 고민 CSV(`data/main_concerns_draft.csv`)의 `verified_concerns`는 검색 기반 분류(`data/search_concerns.csv`)로 채웠습니다. 성분 규칙으로 초안을 다시 만들려면 `python -m scripts.tag_concerns`, 검수표는 `python -m scripts.review_sheet`를 씁니다.
+
+### Database (MySQL, 선택)
+
+`DB_*` 값을 쓰는 MySQL을 쓸 수도 있습니다. 이 경우 마이그레이션(`alembic upgrade head`)으로 테이블을 만듭니다.
+
+```bash
+# backend/.env 에 DB_USER=root, DB_PASSWORD, DB_HOST, DB_NAME, SECRET_KEY 설정
+docker compose --env-file backend/.env up -d
+cd backend && alembic upgrade head
 ```
 
 ### 테스트
 
 ```bash
 cd backend
-python -m pytest -q    # DB 없이 실행 (API 테스트는 메모리 SQLite 사용)
-```
-
-### Docker 없이 데모 실행 (SQLite)
-
-`DATABASE_URL`을 지정하면 MySQL 대신 해당 DB를 씁니다. 테이블은 모델 정의로 생성합니다.
-
-```bash
-cd backend
-export DATABASE_URL=sqlite:///demo.db SECRET_KEY=dev-secret
-python -c "from app.core.database import Base, engine; from app.models import user, profile, product, favorite; Base.metadata.create_all(engine)"
-python -m scripts.load_products
-python -m scripts.apply_concerns --with-drafts   # 검수 전 초안도 반영 (화면에서 '검수 전 태그'로 표시)
-python -m uvicorn app.main:app --reload
+python -m pytest -q    # DB·LLM 호출 없이 실행 (API 테스트는 메모리 SQLite, LLM은 가짜 함수)
 ```
 
 ### Frontend
@@ -181,7 +192,7 @@ npm run dev
 
 ## 데이터 소스
 
-- **제품 / 성분**: 올리브영 상품 페이지를 직접 확인하여 CSV로 수기 입력 (이용약관상 자동 크롤링은 하지 않음). 5개 카테고리(에센스/세럼/앰플, 스킨/토너, 로션, 크림, 미스트/오일) × 20개 = **100개 제품**으로 정리 (`data/ChaeInG_data - 통합.csv`, 중복 1건과 카테고리별 초과분 제외). `data/` 폴더는 `.gitignore`에 있어 저장소에 포함되지 않으므로, 실행하려면 같은 형식의 CSV를 직접 준비해야 합니다. 주력 고민은 핵심 성분 판정 규칙 개편([설계](docs/core-ingredient-rule.md)) 후 초안을 다시 생성하고 전수 검수할 예정입니다.
+- **제품 / 성분**: 올리브영 상품 페이지를 직접 확인하여 CSV로 수기 입력 (이용약관상 자동 크롤링은 하지 않음). 5개 카테고리(에센스/세럼/앰플, 스킨/토너, 로션, 크림, 미스트/오일) × 20개 = **100개 제품**으로 정리 (`data/ChaeInG_data - 통합.csv`, 중복 1건과 카테고리별 초과분 제외). `data/` 폴더는 `.gitignore`에 있어 저장소에 포함되지 않으므로, 실행하려면 같은 형식의 CSV를 직접 준비해야 합니다. 주력 고민은 제품명 검색으로 브랜드 효능을 모아 분류했습니다(`data/search_concerns.csv`, 근거와 신뢰도 표시).
 - **금지 / 한도 성분**: 공공데이터포털 "식품의약품안전처_화장품 사용제한 원료정보" 연동은 v1 범위에서 제외(추후 확장). 엔진에는 `data/regulated_ingredients.csv`를 읽는 자리만 있고 현재 비어 있음
 - **자극 유발 성분(민감성 게이트)**: `data/irritant_ingredients.csv` — 향료, 알레르기 유발 향료 성분, 앞쪽 함량 구간의 알코올, 에센셜 오일 (초안, 검수 필요)
 - **고민-성분 효능 데이터**: 미확보 — 제품 단위 수동 태깅(`main_concerns`)으로 우회
@@ -194,13 +205,13 @@ npm run dev
 - [x] 화장품 검색
 - [x] 성분 검색
 - [x] 제품 데이터 DB 적재
-- [ ] 핵심 성분 판정 규칙 개편 (제품별 경계 + 제품명 신호, [설계 완료](docs/core-ingredient-rule.md), 구현 예정)
-- [ ] 주력 고민 초안 재생성 → 100개 전수 검수 → DB 반영
-- [x] 스코어링 엔진 + 추천 API + 추천 화면
+- [x] 핵심 성분 판정 규칙 (제품별 경계 + 제품명 신호, [설계](docs/core-ingredient-rule.md))
+- [x] 주력 고민 100개 검수 → DB 반영 (검색 기반 분류)
+- [x] 스코어링 엔진 + 추천 API + 추천 화면 (상위 3개 제시)
 - [x] 로그아웃 · 공통 인증 가드 · 상단 네비게이션
-- [ ] 추천 상위 3개 제시
-- [ ] LLM 연동 (자연어 요청 해석, 결과 설명)
-- [x] 테스트 (pytest 50개: 파서, 태거, 엔진, 검수 반영, API 흐름)
+- [x] 채팅형 추천 MVP (자연어 해석, 검증, 병합, 정형 카드)
+- [ ] LLM 설명 문장, 해석 정확도 평가 20~30개 (v1.5)
+- [x] 테스트 (pytest 90개: 파서, 주력 판정, 엔진, 검수 반영, 챗봇, API 흐름)
 - [ ] 배포 (토큰 저장을 `localStorage` → httpOnly 쿠키로 전환 검토)
 - [ ] 문서화 (erd · api-spec · user-flow · daily-log 작성 완료, design-system은 TBD)
 
