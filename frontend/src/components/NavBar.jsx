@@ -15,9 +15,10 @@ function NavBar() {
 
     return (
         <nav className="navbar">
-            <NavLink to="/recommend" className="brand">ChaeInG</NavLink>
+            <NavLink to="/chat" className="brand">ChaeInG</NavLink>
             <div className="nav-links">
-                <NavLink to="/recommend">추천</NavLink>
+                <NavLink to="/chat">채팅</NavLink>
+                <NavLink to="/recommend">프로필 추천</NavLink>
                 <NavLink to="/products">제품</NavLink>
                 <NavLink to="/ingredients">성분</NavLink>
                 {loggedIn && <NavLink to="/favorites">찜</NavLink>}

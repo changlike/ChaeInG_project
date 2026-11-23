@@ -37,6 +37,11 @@ class Settings:
     # 선택: 접속 URL 전체를 직접 지정 (없으면 위 DB_* 값으로 MySQL URL을 조립)
     DATABASE_URL = os.getenv("DATABASE_URL")
 
+    # LLM(OpenAI) 설정. 키가 없으면 챗봇은 LLM 없이 저장된 프로필로 추천함 (필수 값 아님)
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "20"))
+
     # JWT 서명용 비밀 열쇠, 토큰 암호화 방식, 토큰 유효시간(분)
     SECRET_KEY = os.getenv("SECRET_KEY")
     ALGORITHM = os.getenv("ALGORITHM", "HS256")

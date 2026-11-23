@@ -243,3 +243,27 @@ button.heart[aria-pressed="true"] { color: var(--coral); }
 
 .excluded { margin-top: 24px; }
 .reasons { padding-left: 18px; margin: 4px 0 0; font-size: 14px; }
+
+/* 채팅 화면 */
+.chat-header { display: flex; align-items: baseline; justify-content: space-between; }
+.chat-log { display: flex; flex-direction: column; gap: 12px; padding: 8px 0 16px; }
+.chat-row { display: flex; flex-direction: column; gap: 8px; }
+.chat-user { align-items: flex-end; }
+.chat-bot { align-items: flex-start; }
+.bubble {
+  max-width: 85%; padding: 10px 14px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--border); color: var(--text-h);
+}
+.bubble-user { background: var(--sky-bg); border-color: var(--sky); }
+.bubble.confirm { background: var(--coral-bg); border-color: var(--coral); }
+.bot-reply { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.chat-examples { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.chip {
+  padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); cursor: pointer; font: inherit; font-size: 14px;
+}
+.chat-form { display: flex; gap: 8px; position: sticky; bottom: 0; padding: 12px 0; background: var(--bg); }
+.chat-form input {
+  flex: 1; padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-h); font: inherit;
+}

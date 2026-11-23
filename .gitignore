@@ -46,3 +46,6 @@ node_modules/
 
 # Project data (product CSVs, dictionaries)
 data/
+
+# SQLite 로컬 DB
+backend/*.db
