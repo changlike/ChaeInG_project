@@ -1,36 +1,25 @@
-// 추천 제품 카드 (정형 데이터로만 그림)
-// 순위, 고민 매칭(개수만 표시, 점수 합산 아님), 주력 고민 태그, 경고, "근거 보기"(근거 성분 + 설명)
+// 추천 후보 카드 (정형 데이터로만 그림)
+// 순위는 매기지 않고 "후보"로 보여줌. 고민 일치 개수(점수 아님), 주력 고민 태그, 경고, "근거 보기"(근거 성분 + 설명)
 import {useState} from 'react';
 
-function ProductCard({item, rank, evidence = [], explanation}) {
+function ProductCard({item, evidence = [], explanation}) {
     const [open, setOpen] = useState(false);
     const r = item;
-    const ratio = r.total_concerns > 0 ? Math.round((r.match_count / r.total_concerns) * 100) : 0;
 
     return (
         <li className="pcard">
             <div className="pcard-rank">
-                <b>{rank}위</b> · {r.category}
+                <b>추천 후보</b> · {r.category}
             </div>
             <div className="muted small">{r.brand}</div>
             <h3 className="pcard-name">{r.product_name}</h3>
 
             {r.total_concerns > 0 && (
-                <>
-                    <div className="pcard-match">
-                        <span>
-                            {r.match_type === 'contained' ? '함유 매칭' : '고민 매칭'}
-                        </span>
-                        <b>
-                            {r.match_type === 'contained'
-                                ? `${r.contained_matched.length}/${r.total_concerns}`
-                                : `${r.match_count}/${r.total_concerns}`}
-                        </b>
-                    </div>
-                    <div className="pcard-bar" aria-hidden="true">
-                        <div style={{width: `${r.match_type === 'contained' ? 0 : ratio}%`}}/>
-                    </div>
-                </>
+                <p className="pcard-match">
+                    {r.match_type === 'contained'
+                        ? `주력은 아니지만 ${r.contained_matched.join(', ')} 성분이 들어 있어요`
+                        : `내 고민 ${r.total_concerns}개 중 ${r.match_count}개와 맞아요`}
+                </p>
             )}
 
             <div className="tags">

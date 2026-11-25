@@ -49,3 +49,7 @@ data/
 
 # SQLite 로컬 DB
 backend/*.db
+
+# 포트폴리오용 화면 캡처와 구조도 (로컬에만 보관)
+docs/images/
+docs/architecture.svg

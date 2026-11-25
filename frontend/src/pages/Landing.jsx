@@ -1,6 +1,6 @@
 // 처음 접속했을 때 보이는 인트로 화면
 // 로그인한 사용자는 App에서 바로 채팅으로 보내고, 로그인 전 사용자에게만 이 화면을 보여줌
-// 안의 예시 카드는 실제 추천이 아니라 "이런 식으로 보여줘요"를 설명하는 그림임 (점수 없이 고민 일치 개수와 근거 성분만 표시)
+// 안의 예시 카드는 실제 추천이 아니라 "이런 식으로 보여줘요"를 설명하는 그림임 (순위·점수 없이 고민 일치 개수와 근거 성분만 표시)
 import {Link} from 'react-router-dom';
 import {Logo} from '../components/ChatSidebar';
 
@@ -11,7 +11,7 @@ const STEPS = [
     },
     {
         title: '규칙으로 후보 선택',
-        text: '피하는 성분이나 자극 성분이 든 제품은 먼저 거르고, 남은 제품 중 고민과 맞는 3개를 골라요.',
+        text: '피하는 성분이나 자극 성분이 든 제품은 먼저 거르고, 남은 제품 중 고민과 맞는 후보 3개를 골라요. 최종 선택은 직접 하세요.',
     },
     {
         title: '근거까지 확인',
@@ -55,10 +55,9 @@ function Landing() {
                     </div>
                     <div className="landing-example-label">예시 화면</div>
                     <div className="pcard">
-                        <div className="pcard-rank"><b>후보 1</b> · 크림</div>
+                        <div className="pcard-rank"><b>추천 후보</b> · 크림</div>
                         <h3 className="pcard-name">[제품명]</h3>
-                        <div className="pcard-match"><span>고민 매칭</span><b>2/2</b></div>
-                        <div className="pcard-bar" aria-hidden="true"><div style={{width: '100%'}}/></div>
+                        <p className="pcard-match">내 고민 2개 중 2개와 맞아요</p>
                         <div className="tags">
                             <span className="tag tag-on">건조/보습</span>
                             <span className="tag tag-on">홍조</span>

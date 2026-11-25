@@ -331,10 +331,7 @@ button.heart[aria-pressed="true"] { color: var(--coral); }
 .pcard-rank { font-size: 13px; color: var(--muted); }
 .pcard-rank b { color: var(--coral); }
 .pcard-name { margin: 2px 0 8px; font-size: 16px; color: var(--text-h); line-height: 1.35; word-break: keep-all; }
-.pcard-match { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
-.pcard-match b { color: var(--text-h); }
-.pcard-bar { height: 6px; border-radius: 999px; background: var(--border); overflow: hidden; margin: 4px 0 6px; }
-.pcard-bar > div { height: 100%; background: var(--coral); border-radius: 999px; }
+.pcard-match { font-size: 14px; color: var(--text-h); margin: 2px 0 6px; }
 .pcard-toggle { text-align: left; color: var(--coral); font-weight: 700; margin-top: 6px; }
 .pcard-evidence { background: var(--coral-bg); border-radius: 12px; padding: 8px 10px; margin-top: 6px; }
 .pcard-evidence .tags { margin: 4px 0; }

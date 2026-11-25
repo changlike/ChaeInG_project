@@ -149,7 +149,7 @@ function Chat() {
                                 <Logo size={48}/>
                                 <h1>어떤 피부 고민이 있으세요?</h1>
                                 <p className="muted">
-                                    고민과 피하고 싶은 성분을 말해 주세요. 성분 기반 규칙으로 상위 3개를 골라 근거와 함께 보여드려요.
+                                    고민과 피하고 싶은 성분을 말해 주세요. 성분 기반 규칙으로 맞는 후보 3개를 골라 근거와 함께 보여드려요.
                                 </p>
                                 <div className="chat-examples">
                                     {EXAMPLES.map((ex) => (
@@ -197,7 +197,7 @@ function Chat() {
                         <button type="submit" className="send-btn" disabled={loading || !input.trim()} aria-label="보내기">↑</button>
                     </div>
                     <p className="chat-disclaimer">
-                        추천은 성분 정보와 규칙으로 정한 참고용이며, 피부 반응은 사람마다 다를 수 있습니다.
+                        고민과 맞는 후보를 성분 규칙으로 골라 보여드려요. 최종 선택은 직접 해 주세요. 피부 반응은 사람마다 다를 수 있습니다.
                         {u && u.avoided.length > 0 && ' 제외 성분은 대화 중 계속 유지돼요. 바꾸려면 새 상담을 시작하세요.'}
                     </p>
                 </form>
@@ -220,11 +220,10 @@ function BotReply({data}) {
 
             {data.recommendations.length > 0 && (
                 <ul className="pcard-grid">
-                    {data.recommendations.map((r, i) => (
+                    {data.recommendations.map((r) => (
                         <ProductCard
                             key={r.id}
                             item={r}
-                            rank={i + 1}
                             evidence={evidenceOf(r.id)}
                             explanation={explanationOf(r.id)}
                         />
