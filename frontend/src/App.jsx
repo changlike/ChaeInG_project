@@ -10,6 +10,7 @@ import Favorites from './pages/Favorites';
 import Ingredients from './pages/Ingredients';
 import Recommend from './pages/Recommend';
 import Chat from './pages/Chat';
+import Landing from './pages/Landing';
 import NavBar from './components/NavBar';
 import RequireAuth from './components/RequireAuth';
 import {getToken} from './auth';
@@ -20,7 +21,8 @@ function App() {
             <NavBar />
             <main>
                 <Routes>
-                    <Route path="/" element={<Navigate to={getToken() ? '/chat' : '/login'} replace />} />
+                    {/* 로그인한 사용자는 바로 채팅으로, 처음 오는 사용자에게는 인트로 화면 */}
+                    <Route path="/" element={getToken() ? <Navigate to="/chat" replace /> : <Landing />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
                     <Route path="/products" element={<Products />} />

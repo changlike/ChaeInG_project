@@ -1,15 +1,15 @@
 /* ChaeInG 공통 스타일 — docs/design-system.md 참고
-   스카이블루(베이스) + 코랄/핑크(포인트). 색은 :root 변수로만 지정, 다크 모드는 변수만 바꿈 */
+   코랄/핑크 계열 하나로 통일(포인트 = 코랄, 보조 = 연한 웜 톤). 색은 :root 변수로만 지정, 다크 모드는 변수만 바꿈 */
 :root {
-  --text: #4a5363;
-  --text-h: #1d2533;
-  --muted: #8b93a1;
-  --bg: #f6fafd;
+  --text: #52494d;
+  --text-h: #231c20;
+  --muted: #958a8f;
+  --bg: #fdf8f8;
   --surface: #ffffff;
-  --border: #d9e8f4;
+  --border: #f0e1e3;
 
-  --sky: #3a9ad9;
-  --sky-bg: #e8f4fc;
+  --sky: #d23f5b;
+  --sky-bg: #f7eff0;
   --coral: #ec5f74;
   --coral-bg: #fdecef;
 
@@ -29,14 +29,14 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #c5cdd8;
-    --text-h: #f1f5f9;
-    --muted: #8a94a3;
-    --bg: #121820;
-    --surface: #1a2230;
-    --border: #2a3646;
-    --sky: #6bbcf0;
-    --sky-bg: rgba(107, 188, 240, 0.12);
+    --text: #d9cfd2;
+    --text-h: #f6eff1;
+    --muted: #a2969b;
+    --bg: #1a1416;
+    --surface: #231b1e;
+    --border: #3a2d31;
+    --sky: #f27c8e;
+    --sky-bg: rgba(242, 124, 142, 0.12);
     --coral: #f27c8e;
     --coral-bg: rgba(242, 124, 142, 0.15);
     --warn: #f0a04b;
@@ -376,4 +376,57 @@ button.heart[aria-pressed="true"] { color: var(--coral); }
   .pcard-grid { grid-template-columns: 1fr; }
   .bubble-user { max-width: 90%; }
   .chat-welcome h1 { font-size: 22px; }
+}
+
+/* ===== 인트로(랜딩) 화면 ===== */
+.landing { position: fixed; inset: 0; z-index: 10; overflow-y: auto; background: var(--surface); color: var(--text); }
+.landing-top {
+  display: flex; align-items: center; justify-content: space-between;
+  max-width: 1100px; margin: 0 auto; padding: 16px 24px;
+}
+.landing-login { color: var(--text); text-decoration: none; font-size: 14px; font-weight: 600; }
+.landing-hero {
+  background: color-mix(in srgb, var(--coral-bg) 55%, var(--surface));
+}
+.landing-hero > * { box-sizing: border-box; }
+.landing-hero {
+  display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 40px; align-items: center;
+  padding: 56px max(24px, calc((100% - 1052px) / 2));
+}
+.landing-pill {
+  display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 700;
+  background: var(--coral-bg); color: var(--coral); border: 1px solid var(--coral);
+}
+.landing-hero h1 { font-size: 42px; line-height: 1.25; margin: 18px 0 14px; letter-spacing: -0.5px; }
+.landing-hero-text > p { max-width: 460px; }
+.landing-cta { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 10px; }
+.landing-btn-main {
+  background: var(--coral); color: #fff; text-decoration: none; font-weight: 700;
+  border-radius: 12px; padding: 12px 22px;
+}
+.landing-btn-sub {
+  background: var(--surface); color: var(--text-h); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 12px 22px; margin: 0;
+}
+.landing-example {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+.landing-example-label { font-size: 12px; color: var(--muted); font-weight: 700; margin: 6px 0; }
+.landing-how { max-width: 1052px; margin: 0 auto; padding: 56px 24px 64px; text-align: center; }
+.landing-how h2 { font-size: 26px; margin: 0 0 6px; }
+.landing-steps { list-style: none; padding: 0; margin: 28px 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; text-align: left; }
+.landing-step { border: 1px solid var(--border); border-radius: 16px; padding: 18px; background: var(--surface); }
+.landing-step b { display: block; margin: 10px 0 4px; color: var(--text-h); font-size: 17px; }
+.landing-step-num {
+  display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center;
+  border-radius: 8px; background: var(--coral-bg); color: var(--coral); font-weight: 800;
+}
+.landing-cats { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+
+@media (max-width: 860px) {
+  .landing-hero { grid-template-columns: 1fr; padding: 32px 20px 40px; }
+  .landing-hero h1 { font-size: 32px; }
+  .landing-steps { grid-template-columns: 1fr; }
+  .landing-top { padding: 12px 20px; }
 }

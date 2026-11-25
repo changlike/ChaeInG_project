@@ -15,8 +15,8 @@ function NavBar() {
         navigate('/login');
     };
 
-    // 채팅 화면은 자기 사이드바가 있어서 상단 메뉴를 숨김
-    if (pathname === '/chat') return null;
+    // 채팅 화면은 자기 사이드바가, 인트로 화면은 자기 상단바가 있어서 공통 상단 메뉴를 숨김
+    if (pathname === '/chat' || pathname === '/') return null;
 
     return (
         <nav className="navbar">
