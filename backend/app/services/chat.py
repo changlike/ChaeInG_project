@@ -7,14 +7,35 @@ from sqlalchemy.orm import Session
 
 from app.services.llm.client import chat_json
 from app.services.llm.interpreter import (
-    INTENT_OUT_OF_SCOPE, build_confirmation, interpret, merge_with_profile,
+    INTENT_GREETING, INTENT_OFF_TOPIC, INTENT_RECOMMEND, INTENT_UNSUPPORTED,
+    build_confirmation, interpret, merge_with_profile,
 )
 
 TOP_N = 3
-OUT_OF_SCOPE_REPLY = (
-    "피부 고민(건조, 트러블, 홍조, 잡티, 모공, 주름)과 피하고 싶은 성분으로 토너·세럼·로션·크림·미스트 중에서 추천해 드려요. "
-    "예: \"잡티에 좋은 토너 추천해줘, 알코올은 빼고\" (성분 설명, 가격, 비건 같은 조건은 아직 지원하지 않아요)"
+
+# 추천이 아닌 문장 유형별 안내 문구 (LLM이 아니라 코드의 고정 문구)
+GREETING_REPLY = (
+    "안녕하세요, ChaeInG입니다.\n"
+    "피부 고민과 피하고 싶은 성분을 말해 주시면, 성분 기준으로 맞는 제품 후보 3개를 근거와 함께 골라 드려요. "
+    "토너·에센스/세럼/앰플·로션·크림·미스트/오일 중에서 추천해 드려요.\n\n"
+    "이렇게 말해 보세요\n"
+    "· 잡티에 좋은 토너 추천해줘, 알코올은 빼고\n"
+    "· 건조하고 홍조가 있는데 크림 추천해줘"
 )
+UNSUPPORTED_REPLY = (
+    "그 요청은 아직 도와드리기 어려워요. 저는 피부 고민(건조, 트러블, 홍조, 잡티, 모공, 주름)과 피하고 싶은 성분으로 "
+    "토너·세럼·로션·크림·미스트 중에서 추천하는 일만 해요. 선크림·클렌저 같은 다른 제품군, 성분 설명, 가격, 비건 같은 조건은 지원하지 않아요.\n"
+    "예: \"잡티에 좋은 토너 추천해줘, 알코올은 빼고\""
+)
+INVALID_INPUT_REPLY = (
+    "무슨 말씀인지 잘 이해하지 못했어요. 피부 고민이나 피하고 싶은 성분을 알려 주세요.\n"
+    "예: \"속건조가 심한데 크림 추천해줘\", \"여드름이 고민이야, 향료는 빼고\""
+)
+NON_RECOMMEND_REPLIES = {
+    INTENT_GREETING: GREETING_REPLY,
+    INTENT_UNSUPPORTED: UNSUPPORTED_REPLY,
+    INTENT_OFF_TOPIC: INVALID_INPUT_REPLY,
+}
 NEED_CONCERN_REPLY = "어떤 피부 고민이 있는지 알려 주세요. 예: 건조함, 트러블, 홍조, 잡티, 모공, 주름"
 
 EMPTY_CONDITIONS = {"intent": "recommend", "concerns": [], "category": None, "avoided": [], "preferred": []}
@@ -109,8 +130,9 @@ def run_chat(
     base = {"understood": conditions, "confirmation": "", "reply": None, "needs_input": False,
             "recommendations": [], "explanations": [], "evidence": [], "excluded": [], "notices": notices}
 
-    if conditions["intent"] == INTENT_OUT_OF_SCOPE:
-        return {**base, "reply": OUT_OF_SCOPE_REPLY}
+    # 인사·미지원 요청·무관한 말은 추천을 실행하지 않고 유형별 안내 문구만 돌려줌
+    if conditions["intent"] != INTENT_RECOMMEND:
+        return {**base, "reply": NON_RECOMMEND_REPLIES[conditions["intent"]]}
 
     engine_profile, source = merge_with_profile(conditions, profile)
     base["confirmation"] = build_confirmation(engine_profile, conditions["category"], source["concerns"])

@@ -427,3 +427,6 @@ button.heart[aria-pressed="true"] { color: var(--coral); }
   .landing-steps { grid-template-columns: 1fr; }
   .landing-top { padding: 12px 20px; }
 }
+
+/* 안내 문구의 줄바꿈(\n)을 그대로 보여줌 */
+.reply-text { white-space: pre-line; }

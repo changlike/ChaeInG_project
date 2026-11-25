@@ -215,7 +215,7 @@ function BotReply({data}) {
     return (
         <div className="bot-reply">
             {data.confirmation && <p className="confirm-text">{data.confirmation}</p>}
-            {data.reply && <p>{data.reply}</p>}
+            {data.reply && <p className="reply-text">{data.reply}</p>}
             {data.notices.map((n, i) => <p key={i} className="notice">{n}</p>)}
 
             {data.recommendations.length > 0 && (

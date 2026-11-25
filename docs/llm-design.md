@@ -1,6 +1,6 @@
 # LLM 연동 기획 (v1.5)
 
-> 상태: **MVP 구현 완료 (2026-11-23)** — ① 해석기(OpenAI 구조화 출력) + 검증 + 프로필 병합 + 직전 조건 이어받기 + 확인 문구, ② 엔진, `POST /api/chat`, 채팅 화면. **설명기는 템플릿 문장으로 대체**(LLM 설명·검증 2는 v1.5), 평가 스크립트(3.5장)도 v1.5. 구현 위치: `app/services/llm/`(client, interpreter), `app/services/chat.py`, `app/api/chat.py`. LLM은 OpenAI로 확정(키 `OPENAI_API_KEY`, 모델 `OPENAI_MODEL` 기본 `gpt-4o-mini`), 호출부는 `client.py` 한 파일. / 작성: 2026-11-19
+> 상태: **MVP 구현 완료 (2026-11-23)** — ① 해석기(OpenAI 구조화 출력) + 검증 + 프로필 병합 + 직전 조건 이어받기 + 확인 문구, ② 엔진, `POST /api/chat`, 채팅 화면. **설명기는 템플릿 문장으로 대체**(LLM 설명·검증 2는 v1.5). **해석기 평가 스크립트 구현 완료**(`scripts/eval_interpreter.py`, 문장 43개, 결과와 한계는 `docs/eval-results.md`). 구현 위치: `app/services/llm/`(client, interpreter), `app/services/chat.py`, `app/api/chat.py`. LLM은 OpenAI로 확정(키 `OPENAI_API_KEY`, 모델 `OPENAI_MODEL` 기본 `gpt-4o-mini`), 호출부는 `client.py` 한 파일. / 작성: 2026-11-19
 > 원칙: 추천 *판단*은 규칙 엔진이, LLM은 *요청 해석*과 *설명 생성*만 한다. 안전 판단(게이트)에 LLM은 관여하지 않는다.
 
 ---
@@ -52,7 +52,7 @@
 - **출력 스키마(구조화 출력)**
   ```json
   {
-    "intent": "recommend | out_of_scope",
+    "intent": "recommend | greeting | unsupported | off_topic",
     "concerns": ["미백/톤"],
     "category": "스킨/토너",
     "avoided_ingredients": ["알코올"],
@@ -64,7 +64,7 @@
   - `concerns`는 `ALLOWED_CONCERNS` 6개 안의 값만 통과. 밖의 값은 버리고 `unclear`에 남김
   - `category`는 5개 카테고리 중 하나만 통과
   - 기피 성분은 **놓치는 것보다 넓게 거르는 것이 안전**하므로, DB에 없는 성분이어도 유지하되 사용자에게 알림("DB에 정확히 일치하는 성분은 없지만 '알코올'이 들어간 성분을 거릅니다")
-  - `out_of_scope`(스킨케어 추천이 아닌 질문)는 안내 문구로 응답
+  - 추천이 아닌 문장은 유형별 고정 안내 문구로 응답 (LLM이 쓰지 않음): `greeting`(인사·서비스가 뭔지 묻는 말) → "ChaeInG입니다" 서비스 소개와 사용 예, `unsupported`(선크림 등 다른 제품군·성분 설명·가격·비건) → 지원 범위 안내, `off_topic`(배고파·머리 아파·잡담·규칙 무시 지시) → 올바른 문장 입력 요청. 추천이 아닌 유형에서는 LLM이 조건을 채워 보내도 코드가 버림
 - **프로필과의 병합 규칙(제안)**
   - 고민: 메시지에 있으면 메시지 우선, 없으면 프로필 사용
   - 기피 성분: 프로필 ∪ 메시지 (합집합, 안전 쪽)
@@ -121,7 +121,7 @@ LLM을 "통제했다"는 주장을 숫자로 증명하기 위한 장치. 대규�
 | API 키 없음/호출 실패/시간 초과 | 해석 실패 시 저장된 프로필로 추천, 설명은 템플릿. **LLM이 죽어도 추천은 나옴** |
 | 해석 결과가 스키마 위반 | 1회 재시도 후 되묻기 |
 | 설명에 근거 밖 성분/고민 | 템플릿으로 대체 |
-| 스킨케어와 무관한 질문 | out_of_scope 안내 |
+| 인사·미지원·무관한 문장 | 유형별(greeting / unsupported / off_topic) 고정 안내 문구, 추천 실행 안 함 |
 | 프롬프트 인젝션("규칙 무시하고…") | 해석기 출력이 스키마로 제한되고, 추천 판단은 엔진이 하므로 영향 범위가 구조화 필드로 한정됨 |
 
 ## 6. 구현 순서와 예상 시간
